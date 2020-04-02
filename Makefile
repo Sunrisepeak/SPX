@@ -7,13 +7,17 @@ include tools/makefile/function.mk
 ROOT_DIR = ./
 
 # compiler Info
-CC := gcc
-C_FLAGS	:= -march=i686 -fno-builtin -Wall -ggdb -m32 -gstabs -nostdinc -fno-stack-protector -Os
+CXX := g++
+CXX_FLAGS := -march=i686 -m32 \
+			 -fno-exceptions \
+			 -fno-builtin \
+			 -Wall -ggdb -gstabs \
+			 -nostdinc  -nostdinc++ \
+			 -fno-stack-protector -Os
 
 # ld Info
 LD := ld
-LD_FLAGS = -m elf_i386 -nostdlib -N
-
+LD_FLAGS = -m elf_i386
 # obj, bin dir
 OBJ_DIR := obj/
 BIN_DIR := bin/
@@ -22,11 +26,16 @@ BIN_DIR := bin/
 LIBS_DIR := libs/
 INCLUDE := $(addprefix -I,$(LIBS_DIR))
 
+# src file type
+SRC_FILE_TYPE := .S .c .cpp
+
 # branch
 mbr_block := bin/mbr_block
 kernel := bin/kernel
 spx_img := bin/spx.img
 
+# bin dir
+$(call createTargetDir,$(BIN_DIR))
 
 main : $(mbr_block) $(kernel) $(spx_img)
 	@echo + spx.img
@@ -41,42 +50,82 @@ BOOT_DIR := boot/
 
 # src file of .c .S type of local
 LOCAL_SRC_ALL := $(call getFileList,.S,$(BOOT_DIR))
-LOCAL_SRC_ALL += $(call getFileList,.c,$(BOOT_DIR))
+LOCAL_SRC_ALL += $(call getFileList,.cpp,$(BOOT_DIR))
 
 # src to obj of local 
 LOCAL_OBJ_ALL = $(call srcToObjFile,$(LOCAL_SRC_ALL))
 
 # create dir of obj-file
 $(call createTargetDir,$(LOCAL_OBJ_ALL))
-$(call createTargetDir,$(BIN_DIR))
 
 # local include
-LOCAL_INC = $(addprefix -I,$(BOOT_DIR)) $(INCLUDE)
+LOCAL_INC := $(addprefix -I,$(BOOT_DIR)) $(INCLUDE)
 
 # batch compiler to obj by gcc
-$(call ccBatchCompiler,$(LOCAL_SRC_ALL),$(LOCAL_INC),$(C_FLAGS))
+$(call batchCompiler,$(CXX),$(LOCAL_SRC_ALL),$(LOCAL_INC),$(CXX_FLAGS))
 
-# BootBLOCK_OBJ.o
-BootBLOCK_OBJ = $(call srcToObjFile,mbr_block.o)
+# bootblock.o
+bootblock = $(call srcToObjFile,mbr_block.o)
 
-$(mbr_block) : $(BootBLOCK_OBJ)
+$(mbr_block) : $(bootblock)
 	@echo +2 obj/mbr_block.asm obj/mbr_block.out
-	objdump -S $(BootBLOCK_OBJ) > obj/mbr_block.asm
-	objcopy -S -O binary $(BootBLOCK_OBJ) obj/mbr_block.out
+	objdump -S $^ > obj/mbr_block.asm
+	objcopy -S -O binary $^ obj/mbr_block.out
 	@echo + $@
 	$(call exeShellScript,set_mbr_sign.sh,obj/mbr_block.out)
 
-$(BootBLOCK_OBJ) : $(LOCAL_OBJ_ALL)
+$(bootblock) : $(LOCAL_OBJ_ALL)
 	@echo + $@
-	$(LD) -o $@ $(LD_FLAGS) -e start -Ttext 0x7C00 $^
+	$(LD) -o $@ $(LD_FLAGS) -nostdlib -N -e start -Ttext 0x7C00 $^
 	
 # <<<-------------------------------------------------------------------------------
+##################################### Part II ######################################
+# --------------------------------Create Kernel Start---------------------------->>>
 
-#create kernel
+KINCUDE_DIR :=	kernel/include/ \
+				kernel/include/video/ \
+				kernel/include/interrupt/ \
+				kernel/libs/ \
+				kernel/console/ \
+				kernel/interrupt/ \
+				kernel/mm/ \
+				kernel/trap/
 
-$(kernel) :
+
+
+KSRC_DIR	:=	kernel/init/ \
+				kernel/console/ \
+				kernel/interrupt/ \
+				kernel/driver/	\
+				kernel/libs/ \
+				kernel/mm/ \
+				kernel/trap/ \
+				libs/
+
+# all file of src
+LOCAL_SRC_ALL := $(call getFileList,.cpp,$(KSRC_DIR))
+LOCAL_SRC_ALL += $(call getFileList,.S,$(KSRC_DIR))
+
+# src to obj of local 
+LOCAL_OBJ_ALL := $(call srcToObjFile,$(LOCAL_SRC_ALL))
+
+# create dir of obj-file
+$(call createTargetDir,$(LOCAL_OBJ_ALL))
+
+# local include
+LOCAL_INC := $(addprefix -I,$(KINCUDE_DIR)) $(INCLUDE)
+
+# batch compiler to obj by g++
+$(call batchCompiler,$(CXX),$(LOCAL_SRC_ALL),$(LOCAL_INC),$(CXX_FLAGS))
+		
+$(kernel) : $(LOCAL_OBJ_ALL)
 	@echo + $@
-	echo 123 > bin/kernel
+	$(LD) -o $@ $(LD_FLAGS) -T tools/kernel.ld $^
+	@echo +2 obj/kernel.asm obj/kernel.sym
+	objdump -S $@ > obj/kernel.asm
+	objdump -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > obj/kernel.sym
+	
+# <<<-------------------------------------------------------------------------------
 
 
 # -----------------------------------Create spx.img Start------------------------>>>
@@ -87,10 +136,13 @@ $(spx_img) : $(mbr_block)
 
 # <<<-------------------------------------------------------------------------------
 
+VBOX_VHD := ../Book/x86-Assembly-Real-To-Protected_Mode/testVM/testVM.vhd
+TERMINAL := gnome-terminal
 .PHONY : debug
 debug :
-	@echo 1
-
+	@echo Bochs Debug Mode
+	dd if=$(spx_img) of=$(VBOX_VHD) conv=notrunc
+	bochs -f $(VBOX_VHD)../bochsConfig.txt
 
 .PHONY : clean
 clean :

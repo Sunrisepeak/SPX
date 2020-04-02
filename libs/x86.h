@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-20 09:20:07 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-21 14:37:39
+ * @Last Modified time: 2020-03-28 18:28:39
  */
 
 #ifndef __LIBS_X86_H
@@ -20,27 +20,51 @@ inb(uint16_t port) {
 static inline void
 inbToVAddr(uint16_t port, uptr32_t vaddr) {
     asm volatile (
+        "pushl %%eax;"
         "inb %1, %%al"
-        "movb %%al, %0"
-        : "=m" (vaddr)
-        : "d" (port)
+        "movb %%al, (%0)"
+        "popl %%eax;"
+        : 
+        : "d"(port),"r"(vaddr)
     );
 }
 
-static inline uint32_t
+static inline void
 inlToVAddr(uint16_t port, uptr32_t vaddr) {
     asm volatile (
-        "inl %1, %%eax;"
-        "movl %%eax, %0;"
-        : "=m" (vaddr)
-        : "d" (port)
+        "pushl %%eax;"
+        "inl %0, %%eax;"
+        "movl %%eax, (%1);"
+        "popl %%eax;"
+        : 
+        : "d"(port),"r"(vaddr)
     );
-    return *((uint32_t *)vaddr);
 }
 
 static inline void
 outb(uint8_t data, uint16_t port) {
     asm volatile ("outb %0, %1" :: "a" (data), "d" (port));
+}
+
+static inline void
+sti() {
+    asm volatile ("sti");
+}
+
+static inline void
+cli() {
+    asm volatile ("cli");
+}
+
+/* Pseudo-descriptors used for LGDT, LLDT(not used) and LIDT instructions. */
+struct pseudodesc {
+    uint16_t pd_lim;        // Limit
+    uint32_t pd_base;       // Base address
+}__attribute__ ((packed));  // decide size
+
+static inline void
+lidt(struct pseudodesc *pd) {
+    asm volatile ("lidt (%0)" :: "r" (pd));
 }
 
 #endif

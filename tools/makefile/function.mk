@@ -1,9 +1,13 @@
 # * @Author: SPeak Shen 
 # * @Date: 2020-03-19 21:17:34 
 
-
+# from .c .S .cpp to .o [src_file -> objfile]
 define srcToObjFile
-	$(addprefix obj/,$(subst .S,.o,$(subst .c,.o,$(1))))
+	$(addprefix obj/,\
+		$(addsuffix .o,\
+			$(basename $(1))\
+		)\
+	)
 endef
 
 ##create dir of file
@@ -16,9 +20,10 @@ endef
 #	$(1): list of src file
 #	$(2): Include
 #	$(3): flag
-define ccBatchCompiler
-	$(foreach f,$(1),\
-	$(shell gcc -o $(call srcToObjFile,$(f))  $(2)	$(3) -c $(f)))
+define batchCompiler
+	$(foreach f,$(2),\
+		$(shell $(1) -o $(call srcToObjFile,$(f)) $(3) $(4) -c $(f))\
+	)
 endef
 
 # exe shell script (script,args1,arg2....)
@@ -26,5 +31,6 @@ exeShellScript = sh tools/shell/$(1) $(2) $(3) $(4)
 
 toTargetFile = $(addprefix obj/,$(1)$(2).o)
 
-# get filelist of dir/filename.* type
-getFileList = $(shell find $(3) -name *$(1) | grep "\./$(2)")
+# get filelist of multi-dir
+# 
+getFileList = $(foreach d,$(2),$(shell find $(d) -name *$(1)))
