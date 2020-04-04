@@ -15,7 +15,7 @@
 class OStream {
     
     public:
-        OStream(String str, String col);
+        OStream(String str = "", String col = "white");
 
         ~OStream();
 

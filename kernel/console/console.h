@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-21 10:48:50 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-25 20:23:05
+ * @Last Modified time: 2020-04-03 20:15:44
  * 
  */
 
@@ -22,7 +22,7 @@ class Console : public VideoMemory {
         struct Char {           
             uint8_t c;              // char       
             uint8_t attri;          // attribute KRGB_IRGB |  front:back
-        };                          //      K: flash; 
+        }__attribute__ ((packed));  //      K: flash; 
                                          
                                     //(0,0)
         struct CursorPos {          //  *--------------> y
@@ -31,6 +31,8 @@ class Console : public VideoMemory {
         };                          //  V x
 
         Console();
+
+        void init();
 
         void clear();                                   // clear console
 
@@ -66,7 +68,7 @@ class Console : public VideoMemory {
 
         CursorPos cPos;                                 // coursor postion
 
-        Char charEctype;                                // char, background and char of attribute
+        static Char charEctype;                         // char, background and char of attribute
 
         Char cursorStatus;
 

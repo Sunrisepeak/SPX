@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-25 15:03:34 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-28 18:44:43
+ * @Last Modified time: 2020-04-03 20:16:23
  */
 
 #include <console.h>
@@ -19,10 +19,6 @@ Console::Console() {
     cPos.x = VideoMemory::getCursorPos() / length;
     cPos.y = VideoMemory::getCursorPos() % length;
 
-    // init char = S and color: front = white, back = black
-    charEctype.c = 'S';
-    charEctype.attri = screen[0].attri;     // get current background of console
-
     // set cursor status
     cursorStatus.c = 'S';
     cursorStatus.attri = 0b10101010;        // light green and flash
@@ -30,6 +26,11 @@ Console::Console() {
 
 void Console::clear() {
     VideoMemory::initVmBuff();
+}
+
+void Console::init() {
+    VideoMemory::initVmBuff();
+    setCursorPos(0, 0);
 }
 
 void Console::setColor(String str) {
@@ -55,7 +56,9 @@ void Console::setBackground(String str) {
     charEctype.attri = (charEctype.attri & 0x0F) | ((colorTable[index]) << 4);
     for (uint32_t row = 0; row < wide; row++) {
         for (uint32_t col = 0; col < length; col++) {
-            screen[row * length + col].attri = charEctype.attri;
+            if (cPos.x != row || cPos.y != col) {
+                screen[row * length + col].attri = charEctype.attri;
+            }
         }
     }
 }

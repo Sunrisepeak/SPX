@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-19 21:21:17 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-23 23:11:51
+ * @Last Modified time: 2020-04-03 19:25:53
  */
 
 #include <asm.h>
@@ -14,18 +14,16 @@
 .set SET_CR0_PE,             0x1                     # protected mode enable flag
 .set SET_A20,                0x2                     # A20 Enable
 .set SET_PE,                 0x1                     # set cr0 PE
-
+.set SMAP,                   0x534d4150
 
 .globl start
 start:
 .code16                                             # Assemble for 16-bit mode
-    # init reg ss:sp
+    # init reg ss:sp and es
     movw %cs, %ax
     movw %ax, %ss
+    movw %ax, %es
     movw $0x7C00, %sp
-
-    # load gdt
-    lgdt gdtdesc
     
     # Enable A20 for access greater than 20bits of address
 seta20:
@@ -33,11 +31,35 @@ seta20:
     orb $SET_A20, %al
     outb %al, $0x92
 
-    CLI                                             # close interrupt
+    CLI                                              # close interrupt
+    CLD                                              # String operations increment
     
+    # int 15 0xE820 -----> to Detect memory
+probe_memory:
+    movl $0, 0x8000
+    xorl %ebx, %ebx
+    movw $0x8004, %di
+start_probe:
+    movl $0xE820, %eax
+    movl $20, %ecx
+    movl $SMAP, %edx
+    int $0x15
+    jnc cont
+    movw $12345, 0x8000
+    jmp finish_probe
+cont:
+    addw $20, %di
+    incl 0x8000
+    cmpl $0, %ebx
+    jnz start_probe
+finish_probe:
+
+    # load gdt
+    lgdt gdtdesc
+
     # set PE bit into protected mode
     movl %cr0, %eax
-    orl $SET_PE, %eax                              # set pe
+    orl $SET_PE, %eax                               # set pe
     movl %eax, %cr0 
 
     ljmp $PROT_MODE_CSEG, $protcseg
@@ -45,7 +67,7 @@ seta20:
 .code32                                             # Assemble for 32-bit mode
 protcseg:
     # Set up the protected-mode data segment registers
-    movw $PROT_MODE_DSEG, %ax                      # data segment selector
+    movw $PROT_MODE_DSEG, %ax                       # data segment selector
     movw %ax, %ds                                   # -> DS: Data Segment
     movw %ax, %es                                   # -> ES: Extra Segment
     movw %ax, %fs                                   # -> FS
@@ -57,6 +79,7 @@ protcseg:
     movl $0x7C00, %esp
     call bootKernel
 
+.data
 # Bootstrap GDT
 .p2align 2                                          # force 4 byte alignment
 gdt:

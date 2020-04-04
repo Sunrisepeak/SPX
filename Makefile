@@ -76,7 +76,7 @@ $(mbr_block) : $(bootblock)
 
 $(bootblock) : $(LOCAL_OBJ_ALL)
 	@echo + $@
-	$(LD) -o $@ $(LD_FLAGS) -nostdlib -N -e start -Ttext 0x7C00 $^
+	$(LD) -o $@ $(LD_FLAGS) -nostdlib -N -T tools/boot.ld $^
 	
 # <<<-------------------------------------------------------------------------------
 ##################################### Part II ######################################
@@ -85,10 +85,11 @@ $(bootblock) : $(LOCAL_OBJ_ALL)
 KINCUDE_DIR :=	kernel/include/ \
 				kernel/include/video/ \
 				kernel/include/interrupt/ \
+				kernel/include/mm/ \
+				kernel/include/mm/malgorithms/ \
 				kernel/libs/ \
 				kernel/console/ \
 				kernel/interrupt/ \
-				kernel/mm/ \
 				kernel/trap/
 
 
@@ -99,12 +100,13 @@ KSRC_DIR	:=	kernel/init/ \
 				kernel/driver/	\
 				kernel/libs/ \
 				kernel/mm/ \
+				kernel/mm/malgorithms/ \
 				kernel/trap/ \
 				libs/
 
 # all file of src
-LOCAL_SRC_ALL := $(call getFileList,.cpp,$(KSRC_DIR))
-LOCAL_SRC_ALL += $(call getFileList,.S,$(KSRC_DIR))
+LOCAL_SRC_ALL := $(call getFileList,.S,$(KSRC_DIR))
+LOCAL_SRC_ALL += $(call getFileList,.cpp,$(KSRC_DIR))
 
 # src to obj of local 
 LOCAL_OBJ_ALL := $(call srcToObjFile,$(LOCAL_SRC_ALL))

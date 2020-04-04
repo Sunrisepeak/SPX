@@ -47,3 +47,7 @@ void MMU::setCallGate(GateDesc &gate, uint32_t ss, uint32_t off, uint32_t dpl) {
 void MMU::setTCB() {
 
 }
+
+void MMU::SetPageReserved(Page *p) {
+    p->status |= 0x1;
+}

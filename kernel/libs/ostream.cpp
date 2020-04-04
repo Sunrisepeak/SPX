@@ -7,7 +7,7 @@
 
 #include <ostream.h>
 
-OStream::OStream(String str, String col = "white") {
+OStream::OStream(String str, String col) {
     cons.setColor(col);
     buffPointer = 0;
     for (; buffPointer < str.getLength(); buffPointer++) {

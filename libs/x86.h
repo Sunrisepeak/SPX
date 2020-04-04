@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-20 09:20:07 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-28 18:28:39
+ * @Last Modified time: 2020-04-03 13:52:56
  */
 
 #ifndef __LIBS_X86_H
@@ -60,11 +60,38 @@ cli() {
 struct pseudodesc {
     uint16_t pd_lim;        // Limit
     uint32_t pd_base;       // Base address
-}__attribute__ ((packed));  // decide size
+}__attribute__ ((packed));  // rule size
 
 static inline void
 lidt(struct pseudodesc *pd) {
     asm volatile ("lidt (%0)" :: "r" (pd));
+}
+
+static inline uint32_t
+getCR0() {
+    uint32_t cr0;
+    asm volatile ("movl %%cr0, %0" : "=r" (cr0));
+    return cr0;
+}
+
+static inline void
+setCR0(uint32_t v) {
+    asm volatile ("movl %0, %%cr0" :: "a" (v));
+}
+
+static inline void
+setCR3(uptr32_t ad) {
+    asm volatile ("movl %0, %%cr3" :: "a" (ad));
+}
+
+
+static inline void
+jmpFlush() {
+    asm volatile (
+        "   leal next, %eax;"
+        "   jmp *%eax;"
+        "next:  "
+    );
 }
 
 #endif
