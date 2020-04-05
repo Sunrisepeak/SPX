@@ -2,16 +2,18 @@
 #define _PMMMANAGER_H
 
 #include <defs.h>
+#include <mmu.h>
+#include <list.hpp>
 #include <string.h>
 
 class PmmManager {
 
-    protected:
+    public:
         String name = "SPX-MemManager";
 
         virtual void init() = 0;                      // initialize internal description&management data structure                   
 
-        virtual void initMemMap() = 0;                // (free block list, number of free block) of XXX_pmm_manager 
+        virtual void initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) = 0;                // (free block list, number of free block) of XXX_pmm_manager 
                                                       // setup description&management data structcure according to
                                                       // the initial free physical memory space 
         virtual void allocPages(uint32_t n) = 0;      // allocate >=n pages, depend on the allocation algorithm 

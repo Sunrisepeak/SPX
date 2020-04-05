@@ -48,6 +48,18 @@ void MMU::setTCB() {
 
 }
 
-void MMU::SetPageReserved(Page *p) {
-    p->status |= 0x1;
+void MMU::setPageReserved(Page &p) {
+    p.status |= 0x1;
+}
+
+void MMU::setPageProperty(Page &p) {
+    p.status |= 0x2;
+}
+
+MMU::LinearAD MMU::LAD(uptr32_t vAd) {
+    LinearAD lad;
+    lad.OFF = vAd & 0xFFF;
+    lad.PTI = (vAd >> PGSHIFT) & 0x3FF;
+    lad.PDI = (vAd >> PTSHIFT) & 0x3FF;
+    return lad;
 }

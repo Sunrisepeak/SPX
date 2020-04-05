@@ -9,8 +9,10 @@
 #define _PHYMM_H
 
 #include <memlayout.h>
-#include <PmmManager.h>
 #include <mmu.h>
+#include <PmmManager.h>
+#include <FFMA.h>
+#include <list.hpp>
 #include <flags.h>
 
 /*      physical Memory management      */
@@ -27,6 +29,8 @@ class PhyMM : public MMU {
             } __attribute__((packed)) ARDS[E820MAX];
         };
 
+        PhyMM();
+
         void init();
 
         void initPage();                            // pmm_init - initialize the physical memory management
@@ -35,16 +39,22 @@ class PhyMM : public MMU {
 
         uptr32_t pToVirAD(uptr32_t pAd);
 
-        uint32_t roundUp(uint32_t a, uint32_t n);   // round up  n for a; Example (7, 4) = 8
+        List<Page>::DLNode * phyADtoPage(uptr32_t pAd);
 
         void initPmmManager();
     
     private:
+        // virtual address of boot-time page directory
+        PTEntry *bootPDT;
+
         uint32_t numPage;
+
+        FFMA ff;
         
         PmmManager *manager;
 
-        Page *pages;
+        List<Page>::DLNode *nodeArray;      // contain page-attribute[data] in Node
+
 };
 
 #endif

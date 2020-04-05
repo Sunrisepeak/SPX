@@ -1,12 +1,37 @@
 #include <phymm.h>
 #include <ostream.h>
+#include <utils.hpp>
+
+PhyMM::PhyMM() {
+    extern PTEntry __boot_pgdir;
+    bootPDT = &__boot_pgdir;
+}
 
 void PhyMM::init() {
     extern uptr32_t __boot_pgdir;                   // virtual AD of page directory Table
     bootCR3 = vToPhyAD(__boot_pgdir);
     bootCR3 = 1;
-
+    initPmmManager();
     initPage();
+
+//    bootPDT[LAD(VPT)->PDI].p_base = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
+//    bootPDT[LAD(VPT)->PDI].p_p = 1;
+//    bootPDT[LAD(VPT)->PDI].p_rw = 1;
+
+    OStream out("\nInit: ", "blue");
+    
+    out.writeValue(VPT);
+    out.write("  VPT <---> PDI: ");
+    out.writeValue(LAD(VPT).PDI);
+
+    out.write("\n");
+
+    out.writeValue(sizeof(LinearAD));
+    out.write("  LAD <---> PTE: ");
+    out.writeValue(sizeof(PTEntry));
+
+    /*      wait 2020.4.5       */
+
 }
 
 void PhyMM::initPage() {
@@ -33,7 +58,7 @@ void PhyMM::initPage() {
             }
         }
         
-        out.write("\n", true);
+        out.write("\n");
     }
 
     if (maxpa > KERNEL_MEM_SIZE) {
@@ -47,27 +72,46 @@ void PhyMM::initPage() {
     out.write("\n numPage = ");
     out.writeValue(numPage);
     
-    pages = (Page *)roundUp((uint32_t)end, PGSIZE);
+    nodeArray = (List<Page>::DLNode *)Utils::roundUp((uint32_t)end, PGSIZE);
 
-    out.write("\n pages = ");
-    out.writeValue((uint32_t)pages);
+    out.write("\n nodeArray = ");
+    out.writeValue((uint32_t)nodeArray);
 
     for (uint32_t i = 0; i < numPage; i++) {   // init reserved for all of page 
-        SetPageReserved(pages + i);
+        setPageReserved(nodeArray[i].data);
     }
-    // get top-address of pages[] element in the end
-    uptr32_t freeMem = vToPhyAD((uptr32_t)(pages + numPage));
+
+    // get top-address of nodeArray[] element in the end, it is free area when great than the AD
+    uptr32_t freeMem = vToPhyAD((uptr32_t)(nodeArray + numPage));
     
     out.write("\n freeMem = ");
     out.writeValue((uint32_t)freeMem);
+    out.flush();
 
-
-    /*     wait --- 2020.4.4      */
-
+    for (uint32_t i = 0; i < memMap->numARDS; i++) {
+        // get AD of begin and end of current Mem-Block 
+        uptr32_t begin = memMap->ARDS[i].addr, end = begin + memMap->ARDS[i].size;
+        
+        if (memMap->ARDS[i].type == E820_ARM) {                                    // is ARM Area
+            if (begin < freeMem) {
+                begin = freeMem;
+            }
+            if (end > KERNEL_MEM_SIZE) {
+                end = KERNEL_MEM_SIZE;
+            }
+            if (begin < end) {
+                begin = Utils::roundUp(begin, PGSIZE);
+                end = Utils::roundDown(end, PGSIZE);
+                if (begin < end) {
+                    manager->initMemMap(phyADtoPage(begin), (end - begin) / PGSIZE);
+                }
+            }
+        }
+    }
 }
 
 void PhyMM::initPmmManager() {
-   
+    manager = &ff;
 }
 
 uptr32_t PhyMM::vToPhyAD(uptr32_t kvAd) {
@@ -78,8 +122,8 @@ uptr32_t PhyMM::pToVirAD(uptr32_t pAd) {
     return pAd + KERNEL_BASE;
 }
 
-uint32_t PhyMM::roundUp(uint32_t a, uint32_t n) {
-    a = (a % n == 0) ? a : (a / n + 1) * n;
-    return a;
+List<MMU::Page>::DLNode * PhyMM::phyADtoPage(uptr32_t pAd) {
+    uint32_t pIndex = pAd >> PGSHIFT;       // get pages-No
+    return &(nodeArray[pIndex]);
 }
 

@@ -120,7 +120,12 @@ class MMU {
 
         void setTCB();
 
-        void SetPageReserved(Page *p);        
+        static void setPageReserved(Page &p);   
+
+        static void setPageProperty(Page &p);
+
+        // covert to liner ad struct
+        LinearAD LAD(uptr32_t vAd);     
 
         SegDesc getSegDesc();
 

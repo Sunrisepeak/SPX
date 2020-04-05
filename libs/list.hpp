@@ -9,14 +9,14 @@ class List {
         // Double List Node                                     
         struct DLNode {
             Object data;  
-            DLNode *pre, *next;                                                 
-        };
+            DLNode *pre, *next;                                               
+        }__attribute__((packed));
 
         // List Head Node                                                
         struct LHeadNode {
-            DLNode *head, *trail;
+            DLNode *first, *last;
             uint32_t eNum;
-        };
+        }__attribute__((packed));
 
         List();
 
@@ -30,19 +30,19 @@ class List {
 
     private:
 
-        LHeadNode lHNode;
+        LHeadNode headNode;
 };
 
 template <typename Object>
 List<Object>::List() {
-    lHNode.head = nullptr;
-    lHNode.trail = nullptr;
-    lHNode.eNum = 0;
+    headNode.first = nullptr;
+    headNode.last = nullptr;
+    headNode.eNum = 0;
 }
 
 template <typename Object>
 bool List<Object>::isEmpty() {
-    return (lHNode.eNum == 0 && lHNode.trail == nullptr);
+    return (headNode.eNum == 0 && headNode.last == nullptr);
 }
 
 template <typename Object>
@@ -53,27 +53,27 @@ typename List<Object>::DLNode & List<Object>::nextLNode(const DLNode &node) {
 template <typename Object>
 void List<Object>::addLNode(DLNode &node) {
     if (isEmpty()) {
-        lHNode.trail = &node;
-        lHNode.head = &node;
-        lHNode.eNum = 1;
+        headNode.last = &node;
+        headNode.first = &node;
+        headNode.eNum = 1;
         node.pre = nullptr;
         node.next = nullptr;
     } else {
-        DLNode *p = lHNode.head;      // get rail Node
+        DLNode *p = headNode.first;      // get rail Node
         
         node.pre = p;
         p->next = &node;
         node.next = nullptr;
 
-        lHNode.head = &node;           // update 
-        lHNode.eNum++;
+        headNode.first = &node;           // update 
+        headNode.eNum++;
     }
 }
 
 template <typename Object>
 Object & List<Object>::locateElement(const uint32_t loc) {
     uint32_t index = 1;
-    DLNode *p = lHNode.head;
+    DLNode *p = headNode.first;
     while (index < loc) {
         p = p->next;
     }

@@ -12,7 +12,14 @@
 #include <interrupt.h>
 #include <phymm.h>
 #include <list.hpp>
-#include <gstatic.h>   
+#include <gstatic.h>
+
+/*     virtual funciton exception dealing       */
+extern "C" void __cxa_pure_virtual() { 
+    OStream os("\nvirutal funtion error.. \n", "red");
+    os.flush();
+    while (1); 
+}
 
 /*  kernel entry point  */
 extern "C" void initKernel() {
@@ -29,6 +36,8 @@ extern "C" void initKernel() {
 //    inter.enable();
     while(1);
 }
+
+
 
 
 

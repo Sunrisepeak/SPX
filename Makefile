@@ -13,7 +13,8 @@ CXX_FLAGS := -march=i686 -m32 \
 			 -fno-builtin \
 			 -Wall -ggdb -gstabs \
 			 -nostdinc  -nostdinc++ \
-			 -fno-stack-protector -Os
+			 -fno-stack-protector -Os \
+			 -fno-rtti
 
 # ld Info
 LD := ld
