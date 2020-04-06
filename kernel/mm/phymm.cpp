@@ -14,9 +14,10 @@ void PhyMM::init() {
     initPmmManager();
     initPage();
 
-//    bootPDT[LAD(VPT)->PDI].p_base = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
-//    bootPDT[LAD(VPT)->PDI].p_p = 1;
-//    bootPDT[LAD(VPT)->PDI].p_rw = 1;
+    // map to page-dir-table by Virtual Page Table
+    bootPDT[LAD(VPT).PDI].p_base = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
+    bootPDT[LAD(VPT).PDI].p_p = 1;
+    bootPDT[LAD(VPT).PDI].p_rw = 1;
 
     OStream out("\nInit: ", "blue");
     
@@ -31,6 +32,8 @@ void PhyMM::init() {
     out.writeValue(sizeof(PTEntry));
 
     /*      wait 2020.4.5       */
+    // map kernel segment pAD[0 ~ KERNEL_MEM_SIZE] to vAD[KERNEL_BASE ~ (KERNEL_BASE + KERNEL_MEM_SIZE)]
+    mapSegment(KERNEL_BASE, 0, KERNEL_MEM_SIZE, PTE_W);
 
 }
 
@@ -38,7 +41,7 @@ void PhyMM::initPage() {
     E820Map *memMap = (E820Map *)(E820_BUFF + KERNEL_BASE);                      
     uint64_t maxpa = 0;                                                             // size of all mem-block
 
-    OStream out("Memmory Map [E820Map] begin...\n", "blue");
+    OStream out("\nMemmory Map [E820Map] begin...\n", "blue");
     for (uint32_t i = 0; i < memMap->numARDS; i++) {                               // scan all of free memory block
         // get AD of begin and end of current Mem-Block 
         uint64_t begin = memMap->ARDS[i].addr, end = begin + memMap->ARDS[i].size;
@@ -114,8 +117,30 @@ void PhyMM::initPmmManager() {
     manager = &ff;
 }
 
+void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm) {
+    OStream out("\n\nmapSegment:\n lad: ", "blue");
+    out.writeValue(lad);
+    out.write(" to pad: ");
+    out.writeValue(pad);
+    out.flush();
+
+    lad = Utils::roundDown(lad, PGSIZE);
+    pad = Utils::roundDown(pad, PGSIZE);
+    // map by page-size
+    uint32_t n = Utils::roundUp(size + LAD(lad).OFF, PGSIZE) / PGSIZE;
+    for (uint32_t i = 0; i < n; i++) {
+        PTEntry pte = getPTE(LAD(lad));
+        setPermission(pte, PTE_P | perm);
+        lad += PGSIZE;
+        pad += PGSIZE;
+    }
+}
+
 uptr32_t PhyMM::vToPhyAD(uptr32_t kvAd) {
-    return kvAd - KERNEL_BASE;
+    if (KERNEL_BASE <= kvAd && kvAd <= KERNEL_BASE + KERNEL_MEM_SIZE) {
+        return kvAd - KERNEL_BASE;
+    }
+    return 0;
 }
 
 uptr32_t PhyMM::pToVirAD(uptr32_t pAd) {
@@ -127,3 +152,27 @@ List<MMU::Page>::DLNode * PhyMM::phyADtoPage(uptr32_t pAd) {
     return &(nodeArray[pIndex]);
 }
 
+MMU::PTEntry * PhyMM::pdeToPTable(const PTEntry &pte) {
+    uptr32_t ptAD= pToVirAD(pte.p_base);
+    return (PTEntry *)ptAD;
+}
+
+template <typename T>
+void PhyMM::setPermission(T &t, uint32_t perm) {
+    uint32_t &temp =  *(uint32_t *)(&t);  // format data to uint32_t
+    temp |= perm;
+}
+
+MMU::PTEntry & PhyMM::getPTE(const LinearAD &lad, bool create) {
+    OStream out("\n\ngetPTE:\nVPNo: ", "blue");
+    out.writeValue((lad.PDI << 10) | lad.PTI);
+    out.write("-> PTable");
+    PTEntry &pde = bootPDT[lad.PDI];
+    if (!(pde.p_p) && create) {                          // check present bit and is create?
+        out.write(" is not exist,{allocation page not implement....}");
+        out.flush();
+        while(1);
+        /*      wait 2020.4.6      */
+    }
+    return pdeToPTable(pde)[lad.PTI];
+}

@@ -7,7 +7,7 @@ void FFMA::init() {
 }
 
 void FFMA::initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) {
-    OStream out("initMemMap:\n\n firstAd = ", "red");
+    OStream out("\n\ninitMemMap:\n\n firstAd = ", "red");
     out.writeValue((uint32_t)pArr);
     out.write("\n num = ");
     out.writeValue(num);

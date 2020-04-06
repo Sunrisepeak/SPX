@@ -35,13 +35,22 @@ class PhyMM : public MMU {
 
         void initPage();                            // pmm_init - initialize the physical memory management
 
+        void initPmmManager();
+
+        void mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm);
+
         uptr32_t vToPhyAD(uptr32_t vAd);
 
         uptr32_t pToVirAD(uptr32_t pAd);
 
         List<Page>::DLNode * phyADtoPage(uptr32_t pAd);
 
-        void initPmmManager();
+        PTEntry * pdeToPTable(const PTEntry &pte);
+
+        template <typename T>
+        void setPermission(T &t, uint32_t perm);                        // by | :    1110 | 1 = 1111
+
+        PTEntry & getPTE(const LinearAD &lad, bool create = true);
     
     private:
         // virtual address of boot-time page directory
