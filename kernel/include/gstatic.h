@@ -13,6 +13,7 @@
 #include <pic.h>
 #include <interrupt.h>
 #include <mmu.h>
+#include <ostream.h>
 
 /*
  *  init for global static variable
@@ -26,11 +27,32 @@ uint16_t PIC::irqMask  = 0xFFFF;
 bool PIC::didInit  = false;
 
 // MMU
-MMU::GateDesc Interrupt::idt[256] = {{0}};
 uint32_t MMU::bootCR3 = 0;
 
-pseudodesc Interrupt::pdIdt = {
-    sizeof(Interrupt::idt) - 1, (uptr32_t)(Interrupt::idt)
+
+
+// init task state segment struct
+MMU::TSS PhyMM::tss = { 0 };
+
+// Interrupt
+MMU::GateDesc Interrupt::IDT[256] = {{0}};
+MMU::PseudoDesc Interrupt::idtPD = {
+    sizeof(Interrupt::IDT) - 1, (uptr32_t)(Interrupt::IDT)
+};
+
+// PhyMM
+
+MMU::SegDesc PhyMM::GDT[] = {
+    SEG_NULL,
+    SEG_NULL,
+    SEG_NULL,
+    SEG_NULL,
+    SEG_NULL,
+    SEG_NULL
+};
+
+MMU::PseudoDesc PhyMM::gdtPD = {
+    sizeof(GDT) - 1, (uptr32_t)GDT
 };
 
 #endif

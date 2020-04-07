@@ -28,9 +28,32 @@ void FFMA::initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) {
     freeArea.addLNode(*pArr);
 }
 
-void FFMA::allocPages(uint32_t n) {
-
+List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
+    if (n > nfp) {                                 // if n great than  number of free-page
+        return nullptr;
+    }
+    auto it = freeArea.getIterator();
+    List<MMU::Page>::DLNode *pnode;
+    // find Node
+    while((pnode = it->nextLNode()) != nullptr) {
+        if (pnode->data.property >= n) {            // current continuous area[page num] is Ok
+            break;
+        }
+    }
+    if (pnode != nullptr) {
+        if (pnode->data.property > n) {             // need resolve continuous area ?
+            List<MMU::Page>::DLNode *newNode = pnode + n;
+            newNode->data.property = pnode->data.property - n;
+            MMU::setPageProperty(newNode->data);
+            freeArea.insertLNode(pnode, newNode);   // insert new pageNode
+        }
+        freeArea.deleteLNode(pnode);
+        nfp -= n;
+        MMU::clearPageProperty(pnode->data);
+    }
+    return pnode;
 }
+
 void FFMA::freePages(uint32_t n) {
 
 }

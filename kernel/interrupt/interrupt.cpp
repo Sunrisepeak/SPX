@@ -19,13 +19,13 @@ void Interrupt::init() {
 
 void Interrupt::initIDT() {
     extern uptr32_t __vectors[];
-    for (uint32_t i = 0; i < sizeof(idt) / sizeof(MMU::GateDesc); i++) {
-        MMU::setGateDesc(idt[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
+    for (uint32_t i = 0; i < sizeof(IDT) / sizeof(MMU::GateDesc); i++) {
+        MMU::setGateDesc(IDT[i], 0, GD_KTEXT, __vectors[i], DPL_KERNEL);
     }
 	// set for switch from user to kernel
-    MMU::setGateDesc(idt[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
+    MMU::setGateDesc(IDT[T_SWITCH_TOK], 0, GD_KTEXT, __vectors[T_SWITCH_TOK], DPL_USER);
 	// load the IDT
-    lidt(&pdIdt);
+    lidt(&idtPD);
 }
 
 void Interrupt::enable() {

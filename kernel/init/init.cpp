@@ -31,9 +31,9 @@ extern "C" void initKernel() {
     PhyMM pm;
     pm.init();
 
-//    Interrupt inter;
-//    inter.init();
-//    inter.enable();
+    Interrupt inter;
+    inter.init();
+    inter.enable();
     while(1);
 }
 

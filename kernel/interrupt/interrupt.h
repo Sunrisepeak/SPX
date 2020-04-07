@@ -31,8 +31,8 @@ class Interrupt : public PIC, public RTC{
         void disable();
 
     private:
-        static MMU::GateDesc idt[256];
-        static pseudodesc pdIdt;
+        static MMU::GateDesc IDT[256];
+        static MMU::PseudoDesc idtPD;
 };
 
 #endif

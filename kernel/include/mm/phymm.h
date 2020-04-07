@@ -35,6 +35,8 @@ class PhyMM : public MMU {
 
         void initPage();                            // pmm_init - initialize the physical memory management
 
+        void initGDTAndTSS();
+
         void initPmmManager();
 
         void mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm);
@@ -45,14 +47,26 @@ class PhyMM : public MMU {
 
         List<Page>::DLNode * phyADtoPage(uptr32_t pAd);
 
+        uptr32_t pnodeToLAD(List<Page>::DLNode *node);
+
         PTEntry * pdeToPTable(const PTEntry &pte);
 
         template <typename T>
         void setPermission(T &t, uint32_t perm);                        // by | :    1110 | 1 = 1111
 
-        PTEntry & getPTE(const LinearAD &lad, bool create = true);
+        PTEntry * getPTE(const LinearAD &lad, bool create = true);
     
     private:
+
+        static SegDesc GDT[];
+        static PseudoDesc gdtPD;
+
+        static TSS tss;
+
+        // stack data
+        uint8_t *stack;
+        uint8_t *stackTop;
+
         // virtual address of boot-time page directory
         PTEntry *bootPDT;
 
@@ -62,7 +76,7 @@ class PhyMM : public MMU {
         
         PmmManager *manager;
 
-        List<Page>::DLNode *nodeArray;      // contain page-attribute[data] in Node
+        List<Page>::DLNode *pNodeArr;      // contain page-attribute[data] in Node
 
 };
 

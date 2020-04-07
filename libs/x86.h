@@ -56,15 +56,35 @@ cli() {
     asm volatile ("cli");
 }
 
-/* Pseudo-descriptors used for LGDT, LLDT(not used) and LIDT instructions. */
-struct pseudodesc {
-    uint16_t pd_lim;        // Limit
-    uint32_t pd_base;       // Base address
-}__attribute__ ((packed));  // rule size
-
 static inline void
-lidt(struct pseudodesc *pd) {
+lidt(void *pd) {
     asm volatile ("lidt (%0)" :: "r" (pd));
+}
+
+/* *
+ * lgdt - load the global descriptor table register
+ * */
+static inline void
+lgdt(void *pd) {
+    asm volatile ("lgdt (%0)" :: "r" (pd));
+}
+
+// load TSS to task register
+static inline void
+ltr(uint16_t sel) {
+    asm volatile ("ltr %0" :: "r" (sel) : "memory");
+}
+
+// set segment register and flush cs
+static inline void
+setSegR(uint32_t cs, uint32_t ds, uint32_t ss, uint32_t es, uint32_t fs, uint32_t gs) {
+    asm volatile ("movw %%ax, %%ds" :: "a" (ds));
+    asm volatile ("movw %%ax, %%ss" :: "a" (ss));
+    asm volatile ("movw %%ax, %%es" :: "a" (es));
+    asm volatile ("movw %%ax, %%fs" :: "a" (fs));
+    asm volatile ("movw %%ax, %%gs" :: "a" (gs));
+    // reload cs
+    asm volatile ("ljmp %0, $1f\n 1:\n" :: "i" (cs));
 }
 
 static inline uint32_t

@@ -9,15 +9,24 @@
 #include <defs.h>
 #include <memlayout.h>
 
+#define SEG_NULL        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
 class MMU {
 
     public:
+
+        /* Pseudo-descriptors used for LGDT, LLDT(not used) and LIDT instructions. */
+        struct PseudoDesc {
+            uint16_t pd_lim;        // Limit
+            uint32_t pd_base;       // Base address
+        }__attribute__ ((packed));  // rule size
+
         /* segment descriptors */
         struct SegDesc {
             uint16_t sd_lim_15_0 : 16;        // low bits of segment limit
             uint16_t sd_base_15_0 : 16;       // low bits of segment base address
             uint16_t sd_base_23_16 : 8;       // middle bits of segment base address
-            uint16_t sd_type : 4;             // segment type (see STcb_ constants)
+            uint16_t sd_type : 4;             // segment type (see Sts_ constants)
             uint16_t sd_s : 1;                // 0 = system, 1 = application
             uint16_t sd_dpl : 2;              // descriptor Privilege Level
             uint16_t sd_p : 1;                // present
@@ -43,44 +52,44 @@ class MMU {
         }__attribute__((packed));
 
         /* task state segment format (as described by the Pentium architecture book) */
-        struct TCB {
-            uint32_t tcb_link;        // old ts selector
-            uptr32_t tcb_esp0;        // stack pointers and segment selectors
-            uint16_t tcb_ss0;         // after an increase in privilege level
-            uint16_t tcb_padding1;
-            uptr32_t tcb_esp1;
-            uint16_t tcb_ss1;
-            uint16_t tcb_padding2;
-            uptr32_t tcb_esp2;
-            uint16_t tcb_ss2;
-            uint16_t tcb_padding3;
-            uptr32_t tcb_cr3;         // page directory base
-            uptr32_t tcb_eip;         // saved state from last task switch
-            uint32_t tcb_eflags;
-            uint32_t tcb_eax;         // more saved state (registers)
-            uint32_t tcb_ecx;
-            uint32_t tcb_edx;
-            uint32_t tcb_ebx;
-            uptr32_t tcb_esp;
-            uptr32_t tcb_ebp;
-            uint32_t tcb_esi;
-            uint32_t tcb_edi;
-            uint16_t tcb_es;           // even more saved state (segment selectors)
-            uint16_t tcb_padding4;
-            uint16_t tcb_cs;
-            uint16_t tcb_padding5;
-            uint16_t tcb_ss;
-            uint16_t tcb_padding6;
-            uint16_t tcb_ds;
-            uint16_t tcb_padding7;
-            uint16_t tcb_fs;
-            uint16_t tcb_padding8;
-            uint16_t tcb_gs;
-            uint16_t tcb_padding9;
-            uint16_t tcb_ldt;
-            uint16_t tcb_padding10;
-            uint16_t tcb_t;            // trap on task switch
-            uint16_t tcb_iomb;         // i/o map base address
+        struct TSS {
+            uint32_t ts_link;        // old ts selector
+            uptr32_t ts_esp0;        // stack pointers and segment selectors
+            uint16_t ts_ss0;         // after an increase in privilege level
+            uint16_t ts_padding1;
+            uptr32_t ts_esp1;
+            uint16_t ts_ss1;
+            uint16_t ts_padding2;
+            uptr32_t ts_esp2;
+            uint16_t ts_ss2;
+            uint16_t ts_padding3;
+            uptr32_t ts_cr3;         // page directory base
+            uptr32_t ts_eip;         // saved state from last task switch
+            uint32_t ts_eflags;
+            uint32_t ts_eax;         // more saved state (registers)
+            uint32_t ts_ecx;
+            uint32_t ts_edx;
+            uint32_t ts_ebx;
+            uptr32_t ts_esp;
+            uptr32_t ts_ebp;
+            uint32_t ts_esi;
+            uint32_t ts_edi;
+            uint16_t ts_es;           // even more saved state (segment selectors)
+            uint16_t ts_padding4;
+            uint16_t ts_cs;
+            uint16_t ts_padding5;
+            uint16_t ts_ss;
+            uint16_t ts_padding6;
+            uint16_t ts_ds;
+            uint16_t ts_padding7;
+            uint16_t ts_fs;
+            uint16_t ts_padding8;
+            uint16_t ts_gs;
+            uint16_t ts_padding9;
+            uint16_t ts_ldt;
+            uint16_t ts_padding10;
+            uint16_t ts_t;            // trap on task switch
+            uint16_t ts_iomb;         // i/o map base address
         }__attribute__((packed));
 
         struct Page {
@@ -112,17 +121,21 @@ class MMU {
 
         MMU();
 
-        void setSegDesc(uint32_t type,uint32_t base, uint32_t lim, uint32_t dpl);
+        static SegDesc setSegDesc(uint32_t type,uint32_t base, uint32_t lim, uint32_t dpl);
+
+        static SegDesc setTssDesc(uint32_t type,uint32_t base, uint32_t lim, uint32_t dpl);
 
         static void setGateDesc(GateDesc &gate, uint32_t istrap, uint32_t sel, uint32_t off, uint32_t dpl);
 
         static void setCallGate(GateDesc &gate, uint32_t ss, uint32_t off, uint32_t dpl);
 
-        void setTCB();
+        static void setTCB();
 
         static void setPageReserved(Page &p);   
 
         static void setPageProperty(Page &p);
+
+        static void clearPageProperty(Page &p);
 
         // covert to liner ad struct
         LinearAD LAD(uptr32_t vAd);     
@@ -131,17 +144,14 @@ class MMU {
 
         GateDesc getGateDesc();
 
-        TCB getTCB();
+        //TCB getTCB();
 
     protected:
-
         static uint32_t bootCR3;
 
     private:
-
         SegDesc segdesc;
         GateDesc gatedesc;
-        TCB tcb;
     
 };
 

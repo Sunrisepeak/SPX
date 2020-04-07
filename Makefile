@@ -144,6 +144,8 @@ TERMINAL := gnome-terminal
 .PHONY : debug
 debug :
 	@echo Bochs Debug Mode
+	make clean
+	make
 	dd if=$(spx_img) of=$(VBOX_VHD) conv=notrunc
 	bochs -f $(VBOX_VHD)../bochsConfig.txt
 

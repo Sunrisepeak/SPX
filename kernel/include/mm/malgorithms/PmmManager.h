@@ -16,7 +16,7 @@ class PmmManager {
         virtual void initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) = 0;                // (free block list, number of free block) of XXX_pmm_manager 
                                                       // setup description&management data structcure according to
                                                       // the initial free physical memory space 
-        virtual void allocPages(uint32_t n) = 0;      // allocate >=n pages, depend on the allocation algorithm 
+        virtual List<MMU::Page>::DLNode * allocPages(uint32_t n = 1) = 0;      // allocate >=n pages, depend on the allocation algorithm 
 
         virtual void freePages(uint32_t n) = 0;       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
 

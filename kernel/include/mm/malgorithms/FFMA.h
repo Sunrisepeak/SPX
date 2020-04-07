@@ -14,7 +14,7 @@ class FFMA : public PmmManager{
         void initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num);                // (free block list, number of free block) of XXX_pmm_manager 
                                                                         // setup description&management data structcure according to
                                                                         // the initial free physical memory space 
-        void allocPages(uint32_t n);      // allocate >=n pages, depend on the allocation algorithm 
+        List<MMU::Page>::DLNode * allocPages(uint32_t n = 1);      // allocate >=n pages, depend on the allocation algorithm 
 
         void freePages(uint32_t n);       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
 
@@ -22,11 +22,11 @@ class FFMA : public PmmManager{
     
     private:
     
-        List<MMU::Page> freeArea;
+        List<MMU::Page> freeArea;                // list of all of Page
 
         uint32_t nfp { 0 };                      // number of free-page
 
-        List<MMU::Page>::DLNode pageNode;
+        //List<MMU::Page>::DLNode pageNode;
 };
 
 #endif

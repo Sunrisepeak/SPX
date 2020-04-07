@@ -5,12 +5,17 @@
 PhyMM::PhyMM() {
     extern PTEntry __boot_pgdir;
     bootPDT = &__boot_pgdir;
+
+    extern uint8_t bootstack[], bootstacktop[];
+    stack = bootstack;
+    stackTop = bootstacktop;
+
 }
 
 void PhyMM::init() {
     extern uptr32_t __boot_pgdir;                   // virtual AD of page directory Table
     bootCR3 = vToPhyAD(__boot_pgdir);
-    bootCR3 = 1;
+
     initPmmManager();
     initPage();
 
@@ -19,21 +24,15 @@ void PhyMM::init() {
     bootPDT[LAD(VPT).PDI].p_p = 1;
     bootPDT[LAD(VPT).PDI].p_rw = 1;
 
-    OStream out("\nInit: ", "blue");
-    
-    out.writeValue(VPT);
-    out.write("  VPT <---> PDI: ");
-    out.writeValue(LAD(VPT).PDI);
-
-    out.write("\n");
-
-    out.writeValue(sizeof(LinearAD));
-    out.write("  LAD <---> PTE: ");
-    out.writeValue(sizeof(PTEntry));
-
     /*      wait 2020.4.5       */
     // map kernel segment pAD[0 ~ KERNEL_MEM_SIZE] to vAD[KERNEL_BASE ~ (KERNEL_BASE + KERNEL_MEM_SIZE)]
     mapSegment(KERNEL_BASE, 0, KERNEL_MEM_SIZE, PTE_W);
+
+    // Since we are using bootloader's GDT,
+    // we should reload gdt (second time, the last time) to get user segments and the TSS
+    // map virtual_addr 0 ~ 4G = linear_addr 0 ~ 4G
+    // then set kernel stack (ss:esp) in TSS, setup TSS in gdt, load TSS
+    initGDTAndTSS();
 
 }
 
@@ -75,17 +74,17 @@ void PhyMM::initPage() {
     out.write("\n numPage = ");
     out.writeValue(numPage);
     
-    nodeArray = (List<Page>::DLNode *)Utils::roundUp((uint32_t)end, PGSIZE);
+    pNodeArr = (List<Page>::DLNode *)Utils::roundUp((uint32_t)end, PGSIZE);
 
-    out.write("\n nodeArray = ");
-    out.writeValue((uint32_t)nodeArray);
+    out.write("\n pNodeArr = ");
+    out.writeValue((uint32_t)pNodeArr);
 
     for (uint32_t i = 0; i < numPage; i++) {   // init reserved for all of page 
-        setPageReserved(nodeArray[i].data);
+        setPageReserved(pNodeArr[i].data);
     }
 
-    // get top-address of nodeArray[] element in the end, it is free area when great than the AD
-    uptr32_t freeMem = vToPhyAD((uptr32_t)(nodeArray + numPage));
+    // get top-address of pNodeArr[] element in the end, it is free area when great than the AD
+    uptr32_t freeMem = vToPhyAD((uptr32_t)(pNodeArr + numPage));
     
     out.write("\n freeMem = ");
     out.writeValue((uint32_t)freeMem);
@@ -113,6 +112,41 @@ void PhyMM::initPage() {
     }
 }
 
+void PhyMM::initGDTAndTSS() {
+    // set kernel stack of boot-time[default]
+    tss.ts_esp0 = (uptr32_t)stackTop;
+    tss.ts_ss0 = KERNEL_DS;
+
+    /* *
+    * Global Descriptor Table:
+    *
+    * The kernel and user segments are identical (except for the DPL). To load
+    * the %ss register, the CPL must equal the DPL. Thus, we must duplicate the
+    * segments for the user and the kernel. Defined as follows:
+    *
+    *   index[per-8byte]
+    *   - 0:    unused (always faults -- for trapping NULL far pointers)
+    *   - 1:    kernel code segment
+    *   - 2:    kernel data segment
+    *   - 3:    user code segment
+    *   - 4:    user data segment
+    *   - 5:    defined for tss, initialized in gdt_init
+    * */
+    GDT[0] = SEG_NULL;
+    GDT[SEG_KTEXT] = MMU::setSegDesc(STA_E_R, 0x0, 0xFFFFFFFF, DPL_KERNEL);
+    GDT[SEG_KDATA] = MMU::setSegDesc(STA_RW, 0x0, 0xFFFFFFFF, DPL_KERNEL);
+    GDT[SEG_UTEXT] = MMU::setSegDesc(STA_E_R, 0x0, 0xFFFFFFFF, DPL_USER);
+    GDT[SEG_UDATA] = MMU::setSegDesc(STA_RW, 0x0, 0xFFFFFFFF, DPL_USER);
+    GDT[SEG_TSS] = setTssDesc(STS_T32A, (uptr32_t)(&tss), sizeof(tss), DPL_KERNEL);
+    
+    // reload globle descript table register
+    lgdt(&gdtPD);
+    // reset segment register
+    setSegR(KERNEL_CS, KERNEL_DS, KERNEL_DS, KERNEL_DS, USER_DS, USER_DS);
+    // load Tss to task register
+    ltr(GD_TSS);
+}
+
 void PhyMM::initPmmManager() {
     manager = &ff;
 }
@@ -129,8 +163,11 @@ void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm)
     // map by page-size
     uint32_t n = Utils::roundUp(size + LAD(lad).OFF, PGSIZE) / PGSIZE;
     for (uint32_t i = 0; i < n; i++) {
-        PTEntry pte = getPTE(LAD(lad));
-        setPermission(pte, PTE_P | perm);
+        PTEntry *pte = getPTE(LAD(lad));
+
+        setPermission(*pte, PTE_P | perm);
+        pte->p_base = (pad >> PGSHIFT);         // set physical address (20-bits)
+        
         lad += PGSIZE;
         pad += PGSIZE;
     }
@@ -144,12 +181,20 @@ uptr32_t PhyMM::vToPhyAD(uptr32_t kvAd) {
 }
 
 uptr32_t PhyMM::pToVirAD(uptr32_t pAd) {
-    return pAd + KERNEL_BASE;
+    if (pAd <= KERNEL_MEM_SIZE) {
+        return pAd + KERNEL_BASE;
+    }
+    return 0;
 }
 
 List<MMU::Page>::DLNode * PhyMM::phyADtoPage(uptr32_t pAd) {
     uint32_t pIndex = pAd >> PGSHIFT;       // get pages-No
-    return &(nodeArray[pIndex]);
+    return &(pNodeArr[pIndex]);
+}
+
+uptr32_t PhyMM::pnodeToLAD(List<Page>::DLNode *node) {
+    uint32_t pageNo = node - pNodeArr;       // physical memory page NO
+    return pToVirAD(pageNo << PGSHIFT);
 }
 
 MMU::PTEntry * PhyMM::pdeToPTable(const PTEntry &pte) {
@@ -163,16 +208,21 @@ void PhyMM::setPermission(T &t, uint32_t perm) {
     temp |= perm;
 }
 
-MMU::PTEntry & PhyMM::getPTE(const LinearAD &lad, bool create) {
-    OStream out("\n\ngetPTE:\nVPNo: ", "blue");
-    out.writeValue((lad.PDI << 10) | lad.PTI);
-    out.write("-> PTable");
+MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
     PTEntry &pde = bootPDT[lad.PDI];
     if (!(pde.p_p) && create) {                          // check present bit and is create?
-        out.write(" is not exist,{allocation page not implement....}");
-        out.flush();
-        while(1);
         /*      wait 2020.4.6      */
+        List<Page>::DLNode *pnode;
+        if ((pnode = manager->allocPages()) == nullptr) {
+            return nullptr;
+        }
+        pnode->data.ref = 1;
+        // clear page content
+        Utils::memset(pnodeToLAD(pnode), 0, PGSIZE);
+        // set permssion
+        pde.p_us = 1;
+        pde.p_rw = 1;
+        pde.p_p = 1;
     }
-    return pdeToPTable(pde)[lad.PTI];
+    return &(pdeToPTable(pde)[lad.PTI]);
 }
