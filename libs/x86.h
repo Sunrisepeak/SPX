@@ -2,13 +2,15 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-20 09:20:07 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-03 13:52:56
+ * @Last Modified time: 2020-04-09 20:45:48
  */
 
 #ifndef __LIBS_X86_H
 #define __LIBS_X86_H
 
 #include <defs.h>
+
+/* -----------------> I/O <------------------- */
 
 static inline uint8_t
 inb(uint16_t port) {
@@ -42,9 +44,31 @@ inlToVAddr(uint16_t port, uptr32_t vaddr) {
 }
 
 static inline void
+insl(uint32_t port, void *addr, int cnt) {
+    asm volatile (
+        "cld;"
+        "repne; insl;"
+        : "=D" (addr), "=c" (cnt)
+        : "d" (port), "0" (addr), "1" (cnt)
+        : "memory", "cc");
+}
+
+static inline void
 outb(uint8_t data, uint16_t port) {
     asm volatile ("outb %0, %1" :: "a" (data), "d" (port));
 }
+
+static inline void
+outsl(uint32_t port, const void *addr, int cnt) {
+    asm volatile (
+        "cld;"
+        "repne; outsl;"
+        : "=S" (addr), "=c" (cnt)
+        : "d" (port), "0" (addr), "1" (cnt)
+        : "memory", "cc");
+}
+
+/* -----------------> Interrupt <------------------- */
 
 static inline void
 sti() {
@@ -55,6 +79,8 @@ static inline void
 cli() {
     asm volatile ("cli");
 }
+
+/* -----------------> Set Register <------------------- */
 
 static inline void
 lidt(void *pd) {
@@ -112,6 +138,11 @@ jmpFlush() {
         "   jmp *%eax;"
         "next:  "
     );
+}
+
+static inline void
+hlt() {
+    asm volatile ("hlt");
 }
 
 #endif

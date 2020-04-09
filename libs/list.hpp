@@ -46,7 +46,11 @@ class List {
 
         bool isEmpty();
 
+        uint32_t length();
+
         void addLNode(DLNode &node);
+
+        void headInsertLNode(DLNode *node);              // headNode -> [target] -> old-first 
 
         void insertLNode(DLNode *node1, DLNode *node2);  // node1 -> node2 -> node3(old node2)
 
@@ -76,6 +80,11 @@ bool List<Object>::isEmpty() {
 }
 
 template <typename Object>
+uint32_t List<Object>::length() {
+    return headNode.eNum;
+}
+
+template <typename Object>
 void List<Object>::addLNode(DLNode &node) {
     if (isEmpty()) {
         headNode.last = &node;
@@ -83,10 +92,11 @@ void List<Object>::addLNode(DLNode &node) {
         node.pre = nullptr;
         node.next = nullptr;
     } else {
-        DLNode *p = headNode.first;      // get rail Node
-        
-        node.pre = p;
+        DLNode *p = headNode.last;      // get rail Node
+
         p->next = &node;
+
+        node.pre = p;
         node.next = nullptr;
 
         headNode.last = &node;           // update 
@@ -96,15 +106,37 @@ void List<Object>::addLNode(DLNode &node) {
 }
 
 template <typename Object>
+void List<Object>::headInsertLNode(DLNode *node) {
+    if (isEmpty()) {
+        addLNode(*node);
+    } else {
+        node->pre = nullptr;
+        node->next = headNode.first;
+
+        headNode.first->pre = node;
+        
+        headNode.first = node;
+        headNode.eNum++;
+    }
+}
+
+template <typename Object>
 void List<Object>::insertLNode(DLNode *node1, DLNode *node2) {
+    if (node1 == nullptr) {
+        return;
+    }
     if (node1->next == nullptr) {
         addLNode(*node2);
     } else {
         node2->pre = node1;
         node2->next = node1->next;
 
-        node1->next->pre = node2;
+        if (node1->next != nullptr) {
+            node1->next->pre = node2;
+        }
         node1->next = node2;
+
+        headNode.eNum++;
     }
 }
 
@@ -112,7 +144,12 @@ template <typename Object>
 void List<Object>::deleteLNode(DLNode *node) {
     if (headNode.first == node) {       // is first Node
         headNode.first = node->next;
-    } else if (headNode.last == node) { // is second Node
+        if (headNode.first == nullptr) {
+            headNode.last = nullptr;
+        } else {
+            headNode.first->pre = nullptr;
+        }
+    } else if (headNode.last == node) { // is trail Node[can't only a node]
         headNode.last = node->pre;
         headNode.last->next = nullptr;
     } else {                            // is Mid Node
@@ -120,6 +157,8 @@ void List<Object>::deleteLNode(DLNode *node) {
         node->pre->next = node->next;
     }
     node->next = node->pre = nullptr;
+    
+    headNode.eNum--;
 }
 
 template <typename Object>

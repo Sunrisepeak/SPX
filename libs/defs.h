@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-19 21:19:26 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-28 13:36:59
+ * @Last Modified time: 2020-04-09 20:18:12
  */
 
 #ifndef __LIBS_DEFS_H
@@ -17,6 +17,9 @@ typedef unsigned long long uint64_t;
 
 // address
 typedef unsigned int uptr32_t;
+
+// char
+typedef unsigned char uchar8_t;
 
 //cstring, ccstring     c style string
 typedef char *cstring;

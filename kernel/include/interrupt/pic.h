@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-26 13:00:01 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-28 11:24:28
+ * @Last Modified time: 2020-04-09 19:32:22
  */
 
 #ifndef _PIC_H
@@ -33,7 +33,7 @@ class PIC {
     
         void initPIC();
 
-        void enableIRQ(uint32_t irq);
+        static void enableIRQ(uint32_t irq);
 
         static void sendEOI();
 

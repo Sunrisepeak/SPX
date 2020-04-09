@@ -54,10 +54,46 @@ List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
     return pnode;
 }
 
-void FFMA::freePages(uint32_t n) {
+void FFMA::freePages(void *base, uint32_t n) {
+    auto pnArr = (List<MMU::Page>::DLNode *)base;
+    for (uint32_t i = 0; i < n; i++) {          // init page Node info
+        pnArr[i].data.status = 0;
+        pnArr[i].data.ref = 0;
+    }
+    
+    pnArr[0].data.property = n;                             // set pageNum info of continuous area
+    MMU::setPageProperty(pnArr[0].data);                    // enable
 
+    auto it = freeArea.getIterator();
+    List<MMU::Page>::DLNode *pnode;
+
+    while((pnode = it->nextLNode()) != nullptr) {           // need merge for area?
+        if (pnode + pnode->data.property == pnArr) {        // have free page in front
+            pnode->data.property += pnArr->data.property;
+            MMU::clearPageProperty(pnArr[0].data);
+            freeArea.deleteLNode(pnode);
+            pnArr = pnode;                                  // update pnArr address
+            break;
+        } else if (pnArr + pnArr[0].data.property == pnode) {   // have free page in back [pnArr]
+            pnArr[0].data.property += pnode->data.property;
+            MMU::clearPageProperty(pnode->data);
+            freeArea.deleteLNode(pnode);                     // for union of code 
+        } else {
+            // do nothing
+        }
+    }
+
+    it = freeArea.getIterator();
+    while ((pnode = it->nextLNode()) != nullptr && pnode < pnArr) { /*  find node  */ }
+
+    // 1: nullptr 2: pnode > pnArr [pnode->pre == nullptr , ...!= nullptr]
+    if (pnode == nullptr || pnode->pre == nullptr) {
+        freeArea.headInsertLNode(pnArr);
+    } else {
+        freeArea.insertLNode(pnode->pre, pnArr);
+    }
 }
 
 uint32_t FFMA::numFreePases() {
-    return 0;
+    return nfp;
 }

@@ -110,7 +110,7 @@ class MMU {
             uint32_t p_pat : 1;
             uint32_t p_g : 1;
             uint32_t p_avl : 3;
-            uint32_t p_base : 20;                  // base address
+            uint32_t p_ppn : 20;                    // physical page[frame] No
         }__attribute__((packed));
 
         struct LinearAD {

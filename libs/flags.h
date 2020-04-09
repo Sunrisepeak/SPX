@@ -71,6 +71,48 @@
 #define E820_ARR            2       // address range reserved
 
 
+/*   --------------------------IDE[hardDisk] flags--------------------------   */
+
+#define ISA_DATA                0x00
+#define ISA_ERROR               0x01
+#define ISA_PRECOMP             0x01
+#define ISA_CTRL                0x02
+#define ISA_SECCNT              0x02
+#define ISA_SECTOR              0x03
+#define ISA_CYL_LO              0x04
+#define ISA_CYL_HI              0x05
+#define ISA_SDH                 0x06
+#define ISA_COMMAND             0x07
+#define ISA_STATUS              0x07
+
+#define IDE_BSY                 0x80
+#define IDE_DRDY                0x40
+#define IDE_DF                  0x20
+#define IDE_DRQ                 0x08
+#define IDE_ERR                 0x01
+
+#define IDE_CMD_READ            0x20
+#define IDE_CMD_WRITE           0x30
+#define IDE_CMD_IDENTIFY        0xEC
+
+#define IDE_IDENT_SECTORS       20
+#define IDE_IDENT_MODEL         54
+#define IDE_IDENT_CAPABILITIES  98
+#define IDE_IDENT_CMDSETS       164
+#define IDE_IDENT_MAX_LBA       120
+#define IDE_IDENT_MAX_LBA_EXT   200
+
+#define IO_BASE0                0x1F0
+#define IO_BASE1                0x170
+#define IO_CTRL0                0x3F4
+#define IO_CTRL1                0x374
+
+#define MAX_IDE                 4
+#define MAX_NSECS               128
+#define MAX_DISK_NSECS          0x10000000U
+
+
+
 /*  -------------------Register Flags------------------------   */
 
 
@@ -109,5 +151,7 @@
 #define CR0_NW          0x20000000              // Not Writethrough
 #define CR0_CD          0x40000000              // Cache Disable
 #define CR0_PG          0x80000000              // Paging
+
+
 
 #endif

@@ -84,12 +84,15 @@ $(bootblock) : $(LOCAL_OBJ_ALL)
 # --------------------------------Create Kernel Start---------------------------->>>
 
 KINCUDE_DIR :=	kernel/include/ \
+				kernel/include/driver \
 				kernel/include/video/ \
 				kernel/include/interrupt/ \
 				kernel/include/mm/ \
 				kernel/include/mm/malgorithms/ \
+				kernel/kdebug/ \
 				kernel/libs/ \
 				kernel/console/ \
+				kernel/fs/ \
 				kernel/interrupt/ \
 				kernel/trap/
 
@@ -98,7 +101,7 @@ KINCUDE_DIR :=	kernel/include/ \
 KSRC_DIR	:=	kernel/init/ \
 				kernel/console/ \
 				kernel/interrupt/ \
-				kernel/driver/	\
+				kernel/driver/ \
 				kernel/libs/ \
 				kernel/mm/ \
 				kernel/mm/malgorithms/ \

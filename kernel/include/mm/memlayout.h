@@ -1,5 +1,5 @@
-#ifndef __KERN_MM_MEMLAYOUT_H__
-#define __KERN_MM_MEMLAYOUT_H__
+#ifndef _MEMLAYOUT_H__
+#define _MEMLAYOUT_H__
 
 /* This file contains the definitions for memory management in our OS. */
 
@@ -41,4 +41,4 @@
 #define KSTACKPAGE          2                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
 
-#endif /* !__KERN_MM_MEMLAYOUT_H__ */
+#endif /* !_MEMLAYOUT_H__ */

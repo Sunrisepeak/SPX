@@ -1,4 +1,5 @@
 #include <phymm.h>
+#include <assert.h>
 #include <ostream.h>
 #include <utils.hpp>
 
@@ -20,7 +21,7 @@ void PhyMM::init() {
     initPage();
 
     // map to page-dir-table by Virtual Page Table
-    bootPDT[LAD(VPT).PDI].p_base = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
+    bootPDT[LAD(VPT).PDI].p_ppn = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
     bootPDT[LAD(VPT).PDI].p_p = 1;
     bootPDT[LAD(VPT).PDI].p_rw = 1;
 
@@ -166,7 +167,7 @@ void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm)
         PTEntry *pte = getPTE(LAD(lad));
 
         setPermission(*pte, PTE_P | perm);
-        pte->p_base = (pad >> PGSHIFT);         // set physical address (20-bits)
+        pte->p_ppn = (pad >> PGSHIFT);         // set physical address (20-bits)
         
         lad += PGSIZE;
         pad += PGSIZE;
@@ -198,7 +199,7 @@ uptr32_t PhyMM::pnodeToLAD(List<Page>::DLNode *node) {
 }
 
 MMU::PTEntry * PhyMM::pdeToPTable(const PTEntry &pte) {
-    uptr32_t ptAD= pToVirAD(pte.p_base);
+    uptr32_t ptAD= pToVirAD(pte.p_ppn);
     return (PTEntry *)ptAD;
 }
 
@@ -225,4 +226,26 @@ MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
         pde.p_p = 1;
     }
     return &(pdeToPTable(pde)[lad.PTI]);
+}
+
+void * PhyMM::kmalloc(uint32_t size) {
+
+    void * ptr = nullptr;
+    List<Page>::DLNode *base = nullptr;
+    assert(size > 0 && size < 1024*0124);
+    uint32_t num_pages = (size + PGSIZE - 1 ) / PGSIZE;
+    base = manager->allocPages(num_pages);
+    assert(base != nullptr);
+    ptr = (void *)pnodeToLAD(base);
+    return ptr;
+
+}
+
+void PhyMM::kfree(void *ptr, uint32_t size) {
+    assert(size > 0 && size < 1024*0124);
+    assert(ptr != nullptr);
+    List<Page>::DLNode *base = nullptr;
+    uint32_t num_pages = (size + PGSIZE - 1) / PGSIZE;
+    base = phyADtoPage(vToPhyAD((uptr32_t)ptr));
+    manager->freePages(base, num_pages);
 }
