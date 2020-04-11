@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-20 09:20:07 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-09 20:45:48
+ * @Last Modified time: 2020-04-10 10:30:17
  */
 
 #ifndef __LIBS_X86_H
@@ -128,6 +128,13 @@ setCR0(uint32_t v) {
 static inline void
 setCR3(uptr32_t ad) {
     asm volatile ("movl %0, %%cr3" :: "a" (ad));
+}
+
+static inline uint32_t
+readEflags() {
+    uint32_t eflags;
+    asm volatile ("pushfl; popl %0" : "=r" (eflags));
+    return eflags;
 }
 
 

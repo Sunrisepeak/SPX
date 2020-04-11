@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-25 15:02:59 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-03-28 15:09:12
+ * @Last Modified time: 2020-04-10 18:50:55
  */
 
 #ifndef __LIBS_OSTREAM_H
@@ -30,6 +30,7 @@ class OStream {
         void flush();
     
     private:
+        
         Console cons;
         char buffer[512];
         uint32_t buffPointer;               // buffer[] of end_pointer

@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-21 10:48:50 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-03 19:19:44
+ * @Last Modified time: 2020-04-10 21:23:27
  */
 
 #ifndef _VIDEO_MEMORY_H
@@ -15,9 +15,9 @@
 
 
 class VideoMemory {
-    
+
     public:
-        
+
         VideoMemory();
 
         void initVmBuff();

@@ -32,7 +32,12 @@ next:
     # the kernel stack region is from bootstack -- bootstacktop,
     # the kernel stack size is KSTACKSIZE (8KB)defined in memlayout.h
     movl $bootstacktop, %esp
-    # now kernel stack is ready , call the first C++ function
+    # now kernel stack is ready , call the C++ function [init.cpp]
+
+    # call all of ctor for global variable(obj)
+    call globCtor
+
+    # init kernel env
     call initKernel
 
 # should never get here

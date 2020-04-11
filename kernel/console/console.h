@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-21 10:48:50 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-03 20:15:44
+ * @Last Modified time: 2020-04-10 20:53:30
  * 
  */
 
@@ -40,7 +40,7 @@ class Console : public VideoMemory {
 
         void setBackground(String str);                 // set background of console 
 
-        void setCursorPos(uint8_t x, uint8_t y);        // set postion of coursor, left-top is (0, 0)
+        void setCursorPos(uint8_t x = 0, uint8_t y = 0);// set postion of coursor, left-top is (0, 0)
 
         const CursorPos & getCursorPos();               // get postion of coursor
 
@@ -62,15 +62,15 @@ class Console : public VideoMemory {
             0x4, 0x0, 0x7, 0x1
         };
         
-        Char *screen;                                   // screen by char
+        static Char *screen;                                   // screen by char
 
-        uint32_t length, wide;                          // screen size
+        static const uint32_t length, wide;                          // screen size
 
-        CursorPos cPos;                                 // coursor postion
+        static CursorPos cPos;                                 // coursor postion
 
         static Char charEctype;                         // char, background and char of attribute
 
-        Char cursorStatus;
+        static Char cursorStatus;
 
         /*      Function        */
 

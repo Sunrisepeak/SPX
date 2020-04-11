@@ -19,7 +19,7 @@ class List {
             uint32_t eNum;
         }__attribute__((packed));
 
-        class ListIterator {
+        class NodeIterator {
             public:
                 void setCurrentNode(DLNode *node) {
                     currentNode = node;
@@ -37,6 +37,16 @@ class List {
                     currentNode = currentNode->next;
                     return node;
                 }
+                
+                DLNode & operator*() const noexcept {
+                    return currentNode;
+                }
+
+                // postfix ++
+                DLNode & operator++(int nothing) {
+                    return *nextLNode();
+                }
+                
 
             private:
                 struct DLNode *currentNode { nullptr };
@@ -58,11 +68,11 @@ class List {
 
         Object & locateElement(uint32_t loc);
 
-        List<Object>::ListIterator * getIterator();
+        List<Object>::NodeIterator getNodeIterator();
 
     private:
 
-        ListIterator it;                // only a it for every object
+        NodeIterator it;                // only a it for every object
 
         LHeadNode headNode;
 };
@@ -172,9 +182,9 @@ Object & List<Object>::locateElement(const uint32_t loc) {
 }
 
 template <typename Object>
-typename List<Object>::ListIterator * List<Object>::getIterator() {
+typename List<Object>::NodeIterator List<Object>::getNodeIterator() {
     it.setCurrentNode(headNode.first);
-    return &it;
+    return it;
 }
 
 #endif

@@ -41,6 +41,11 @@ SECTIONS {
 
     /* The data segment */
     .data : {
+        ctorStart = .;      /* globle obj*/
+        KEEP(*( .init_array ));
+        KEEP(*(SORT_BY_INIT_PRIORITY( .init_array.* )));
+        ctorEnd = .;
+
         *(.data)
     }
 

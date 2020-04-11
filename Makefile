@@ -14,7 +14,8 @@ CXX_FLAGS := -march=i686 -m32 \
 			 -Wall -ggdb -gstabs \
 			 -nostdinc  -nostdinc++ \
 			 -fno-stack-protector -Os \
-			 -fno-rtti
+			 -fno-rtti \
+			 -fpack-struct \
 
 # ld Info
 LD := ld
@@ -89,6 +90,7 @@ KINCUDE_DIR :=	kernel/include/ \
 				kernel/include/interrupt/ \
 				kernel/include/mm/ \
 				kernel/include/mm/malgorithms/ \
+				kernel/include/sync/ \
 				kernel/kdebug/ \
 				kernel/libs/ \
 				kernel/console/ \

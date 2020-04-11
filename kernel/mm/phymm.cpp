@@ -1,5 +1,7 @@
 #include <phymm.h>
 #include <assert.h>
+#include <kdebug.h>
+#include <sync.h>
 #include <ostream.h>
 #include <utils.hpp>
 
@@ -248,4 +250,16 @@ void PhyMM::kfree(void *ptr, uint32_t size) {
     uint32_t num_pages = (size + PGSIZE - 1) / PGSIZE;
     base = phyADtoPage(vToPhyAD((uptr32_t)ptr));
     manager->freePages(base, num_pages);
+}
+
+uint32_t PhyMM::numFreePages() {
+    DEBUGPRINT("numFreePages");
+    uint32_t ret;
+    bool intr_flag;
+    local_intr_save(intr_flag); 
+    {
+        ret = manager->numFreePages();
+    }
+    local_intr_restore(intr_flag);
+    return ret;
 }

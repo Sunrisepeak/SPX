@@ -20,7 +20,7 @@ class PmmManager {
 
         virtual void freePages(void *base, uint32_t n) = 0;       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
 
-        virtual uint32_t numFreePases() = 0;          // return the number of free pages    
+        virtual uint32_t numFreePages() = 0;          // return the number of free pages    
 };
 
 #endif

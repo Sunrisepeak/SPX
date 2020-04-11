@@ -18,7 +18,7 @@ class FFMA : public PmmManager{
 
         void freePages(void *base, uint32_t n);       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
 
-        uint32_t numFreePases();          // return the number of free pages   
+        uint32_t numFreePages();          // return the number of free pages   
     
     private:
     

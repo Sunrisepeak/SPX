@@ -2,26 +2,14 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-25 15:03:34 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-03 20:16:23
+ * @Last Modified time: 2020-04-10 21:25:43
  */
 
 #include <console.h>
 
 Console::Console() {
-    // set l and w
-    length = 80;
-    wide = 25;
-    
     // get Video Memory buffer
     screen = (Char *)(VideoMemory::vmBuffer);
-
-    // get cursor position
-    cPos.x = VideoMemory::getCursorPos() / length;
-    cPos.y = VideoMemory::getCursorPos() % length;
-
-    // set cursor status
-    cursorStatus.c = 'S';
-    cursorStatus.attri = 0b10101010;        // light green and flash
 }
 
 void Console::clear() {
@@ -63,7 +51,7 @@ void Console::setBackground(String str) {
     }
 }
 
-void Console::setCursorPos(uint8_t x = 0, uint8_t y = 0) {
+void Console::setCursorPos(uint8_t x, uint8_t y) {
     cPos.x = x;
     cPos.y = y;
     // set cursor status

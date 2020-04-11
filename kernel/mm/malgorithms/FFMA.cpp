@@ -1,6 +1,7 @@
 #include <FFMA.h>
 #include <mmu.h>
 #include <ostream.h>
+#include <kdebug.h>
 
 void FFMA::init() {
     //name = "First-Fit Memory Allocation (FFMA) Algorithm";
@@ -32,10 +33,10 @@ List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
     if (n > nfp) {                                 // if n great than  number of free-page
         return nullptr;
     }
-    auto it = freeArea.getIterator();
+    auto it = freeArea.getNodeIterator();
     List<MMU::Page>::DLNode *pnode;
     // find Node
-    while((pnode = it->nextLNode()) != nullptr) {
+    while((pnode = it.nextLNode()) != nullptr) {
         if (pnode->data.property >= n) {            // current continuous area[page num] is Ok
             break;
         }
@@ -64,10 +65,10 @@ void FFMA::freePages(void *base, uint32_t n) {
     pnArr[0].data.property = n;                             // set pageNum info of continuous area
     MMU::setPageProperty(pnArr[0].data);                    // enable
 
-    auto it = freeArea.getIterator();
+    auto it = freeArea.getNodeIterator();
     List<MMU::Page>::DLNode *pnode;
 
-    while((pnode = it->nextLNode()) != nullptr) {           // need merge for area?
+    while((pnode = it.nextLNode()) != nullptr) {           // need merge for area?
         if (pnode + pnode->data.property == pnArr) {        // have free page in front
             pnode->data.property += pnArr->data.property;
             MMU::clearPageProperty(pnArr[0].data);
@@ -83,8 +84,8 @@ void FFMA::freePages(void *base, uint32_t n) {
         }
     }
 
-    it = freeArea.getIterator();
-    while ((pnode = it->nextLNode()) != nullptr && pnode < pnArr) { /*  find node  */ }
+    it = freeArea.getNodeIterator();
+    while ((pnode = it.nextLNode()) != nullptr && pnode < pnArr) { /*  find node  */ }
 
     // 1: nullptr 2: pnode > pnArr [pnode->pre == nullptr , ...!= nullptr]
     if (pnode == nullptr || pnode->pre == nullptr) {
@@ -94,6 +95,7 @@ void FFMA::freePages(void *base, uint32_t n) {
     }
 }
 
-uint32_t FFMA::numFreePases() {
+uint32_t FFMA::numFreePages() {
+    DEBUGPRINT("FFMA::numFreePages");
     return nfp;
 }

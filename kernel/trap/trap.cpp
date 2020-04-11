@@ -3,4 +3,5 @@
 
 void Trap::trap() {
     OStream out("interrupt...\n", "blue");
+    hlt();
 }

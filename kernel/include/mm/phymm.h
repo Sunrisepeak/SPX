@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-04-02 16:22:37 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-09 23:46:32
+ * @Last Modified time: 2020-04-10 20:07:10
  */
 
 #ifndef _PHYMM_H
@@ -59,6 +59,8 @@ class PhyMM : public MMU {
         void * kmalloc(uint32_t size);
 
         void kfree(void *ptr, uint32_t size);
+
+        uint32_t numFreePages();
     
     private:
 
