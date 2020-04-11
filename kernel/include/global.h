@@ -17,6 +17,7 @@
 #include <interrupt.h>
 #include <mmu.h>
 #include <ide.h>
+#include <vmm.h>
 #include <ostream.h>
 
 namespace kernel {
@@ -26,6 +27,20 @@ namespace kernel {
     extern PhyMM pmm;
 
     extern Interrupt interrupt;
+
+    extern IDE ide;
+
+    extern VMM vmm;
 };
+
+void * operator new(uint32_t size);
+void * operator new[](uint32_t size);
+
+// placement new
+void * operator new(uint32_t size, void *ptr);
+void * operator new[](uint32_t size, void *ptr);
+
+void operator delete(void *ptr);
+void operator delete[](void *ptr);
 
 #endif

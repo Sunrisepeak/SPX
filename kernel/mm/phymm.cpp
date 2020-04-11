@@ -9,15 +9,16 @@ PhyMM::PhyMM() {
     extern PTEntry __boot_pgdir;
     bootPDT = &__boot_pgdir;
 
+    bootCR3 = vToPhyAD((uptr32_t)bootPDT);
+
     extern uint8_t bootstack[], bootstacktop[];
     stack = bootstack;
     stackTop = bootstacktop;
-
+    
 }
 
 void PhyMM::init() {
-    extern uptr32_t __boot_pgdir;                   // virtual AD of page directory Table
-    bootCR3 = vToPhyAD(__boot_pgdir);
+
 
     initPmmManager();
     initPage();
@@ -155,16 +156,30 @@ void PhyMM::initPmmManager() {
 }
 
 void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm) {
-    OStream out("\n\nmapSegment:\n lad: ", "blue");
+    OStream out("\nmapSegment:\n lad: ", "blue");
+    out.writeValue(lad);
+    out.write(" to pad: ");
+    out.writeValue(pad);
+    out.write("   size = ");
+    out.writeValue(size);
+    out.flush();
+    out.write("\n");
+
+    lad = Utils::roundDown(lad, PGSIZE);
+    pad = Utils::roundDown(pad, PGSIZE);
+
     out.writeValue(lad);
     out.write(" to pad: ");
     out.writeValue(pad);
     out.flush();
 
-    lad = Utils::roundDown(lad, PGSIZE);
-    pad = Utils::roundDown(pad, PGSIZE);
     // map by page-size
     uint32_t n = Utils::roundUp(size + LAD(lad).OFF, PGSIZE) / PGSIZE;
+
+    out.write("\nn = ");
+    out.writeValue(n);
+    out.flush();
+
     for (uint32_t i = 0; i < n; i++) {
         PTEntry *pte = getPTE(LAD(lad));
 
@@ -231,7 +246,7 @@ MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
 }
 
 void * PhyMM::kmalloc(uint32_t size) {
-
+    DEBUGPRINT("PhyMM::kmalloc");
     void * ptr = nullptr;
     List<Page>::DLNode *base = nullptr;
     assert(size > 0 && size < 1024*0124);
@@ -240,7 +255,6 @@ void * PhyMM::kmalloc(uint32_t size) {
     assert(base != nullptr);
     ptr = (void *)pnodeToLAD(base);
     return ptr;
-
 }
 
 void PhyMM::kfree(void *ptr, uint32_t size) {
@@ -253,7 +267,6 @@ void PhyMM::kfree(void *ptr, uint32_t size) {
 }
 
 uint32_t PhyMM::numFreePages() {
-    DEBUGPRINT("numFreePages");
     uint32_t ret;
     bool intr_flag;
     local_intr_save(intr_flag); 

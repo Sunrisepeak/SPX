@@ -8,8 +8,20 @@
 #include <console.h>
 
 Console::Console() {
+    // set l and w
+    length = 80;
+    wide = 25;
+    
     // get Video Memory buffer
     screen = (Char *)(VideoMemory::vmBuffer);
+
+    // get cursor position
+    cPos.x = VideoMemory::getCursorPos() / length;
+    cPos.y = VideoMemory::getCursorPos() % length;
+
+    // set cursor status
+    cursorStatus.c = 'S';
+    cursorStatus.attri = 0b10101010;        // light green and flash
 }
 
 void Console::clear() {

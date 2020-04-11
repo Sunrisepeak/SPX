@@ -1,4 +1,5 @@
 #include <mmu.h>
+#include <kdebug.h>
 #include <ostream.h>
 
 MMU::MMU() {

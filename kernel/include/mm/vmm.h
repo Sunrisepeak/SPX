@@ -11,7 +11,7 @@
 #define VM_WRITE                0x00000002
 #define VM_EXEC                 0x00000004
 
-class VMM : public PhyMM {
+class VMM {
 
     public:       //manager
         /*      MM --------> VMA        */
@@ -33,7 +33,7 @@ class VMM : public PhyMM {
             void *sm_priv;                          // the private data for swap manager
         } __attribute__((packed));
 
-        void vmmInit();
+        void init();
 
         List<VMA>::DLNode * findVma(List<MM>::DLNode *mm, uptr32_t addr);
 

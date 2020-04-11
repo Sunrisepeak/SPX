@@ -6,9 +6,10 @@
  */
 
 #include <ostream.h>
+#include <global.h>
 
 OStream::OStream(String str, String col) {
-    cons.setColor(col);
+    kernel::console.setColor(col);
     buffPointer = 0;
     for (; buffPointer < str.getLength(); buffPointer++) {
         buffer[buffPointer] = str[buffPointer];
@@ -20,7 +21,7 @@ OStream::~OStream() {
 }
 
 void OStream::flush() {
-    cons.wirte(buffer, buffPointer);
+    kernel::console.wirte(buffer, buffPointer);
     buffPointer = 0;
 }
 

@@ -8,8 +8,8 @@
 /* ------------->Console<-----------------*/
 
 Console::Char * Console::screen { nullptr };                                   // screen by char
-const uint32_t Console::length { 80 };                          // screen size
-const uint32_t Console::wide { 50 };                          // screen size
+uint32_t Console::length { 80 };                          // screen size
+uint32_t Console::wide { 50 };                          // screen size
 Console::CursorPos Console::cPos {0, 0};                                 // coursor postion
 Console::Char Console::charEctype = {       // char, background and char of attribute
     ' ', 0x0

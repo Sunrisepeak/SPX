@@ -31,7 +31,6 @@ class OStream {
     
     private:
         
-        Console cons;
         char buffer[512];
         uint32_t buffPointer;               // buffer[] of end_pointer
         const uint32_t BUFFER_MAX = 512;    // buffer max value    

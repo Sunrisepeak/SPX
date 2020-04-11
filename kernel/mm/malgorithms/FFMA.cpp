@@ -4,7 +4,7 @@
 #include <kdebug.h>
 
 void FFMA::init() {
-    //name = "First-Fit Memory Allocation (FFMA) Algorithm";
+    name = "First-Fit Memory Allocation (FFMA) Algorithm";
 }
 
 void FFMA::initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) {
@@ -96,6 +96,5 @@ void FFMA::freePages(void *base, uint32_t n) {
 }
 
 uint32_t FFMA::numFreePages() {
-    DEBUGPRINT("FFMA::numFreePages");
     return nfp;
 }

@@ -64,7 +64,7 @@ class Console : public VideoMemory {
         
         static Char *screen;                                   // screen by char
 
-        static const uint32_t length, wide;                          // screen size
+        static uint32_t length, wide;                          // screen size
 
         static CursorPos cPos;                                 // coursor postion
 

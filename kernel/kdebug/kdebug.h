@@ -11,18 +11,18 @@
 #include <defs.h>
 #include <ostream.h>
 
-#define BREAKPOINT(x) {                             \
-    OStream out("\nBreakPoint: ", "red");           \
-    out.write(x);                                   \
-    out.flush();                                    \
-    cli();                                          \
-    hlt();                                          \
+#define BREAKPOINT(x) {                                \
+    OStream kdebug("\nBreakPoint: ", "red");           \
+    kdebug.write(x);                                   \
+    kdebug.flush();                                    \
+    cli();                                             \
+    hlt();                                             \
 };
 
-#define DEBUGPRINT(x) {                             \
-    OStream out("\n[DEBUG]:", "red");               \
-    out.write(x);                                   \
-    out.flush();                                    \
+#define DEBUGPRINT(x) {                                \
+    OStream kdebug("\n[DEBUG]:", "red");               \
+    kdebug.write(x);                                   \
+    kdebug.flush();                                    \
 };
 
 #endif
