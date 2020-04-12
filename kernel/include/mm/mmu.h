@@ -8,6 +8,7 @@
 /*  MMU   */
 #include <defs.h>
 #include <memlayout.h>
+#include <ostream.h>
 
 #define SEG_NULL        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
@@ -111,12 +112,36 @@ class MMU {
             uint32_t p_g : 1;
             uint32_t p_avl : 3;
             uint32_t p_ppn : 20;                    // physical page[frame] No
+
+            bool isEmpty() {
+                return (*(uint32_t *)(this)) == 0;
+            }
+
+            void setPermission(uint32_t perm) {
+                auto &temp = (*(uint32_t *)(this));
+                temp |= perm;
+            }
+
         }__attribute__((packed));
 
         struct LinearAD {
             uint32_t OFF : 12;
             uint32_t PTI : 10;
             uint32_t PDI : 10;
+
+            uptr32_t Integer() {
+                return *(uptr32_t *)(this);
+            }
+
+            // covert to liner ad struct
+            static LinearAD LAD(uptr32_t vAd) {
+                LinearAD lad;
+                lad.OFF = vAd & 0xFFF;
+                lad.PTI = (vAd >> PGSHIFT) & 0x3FF;
+                lad.PDI = (vAd >> PTSHIFT) & 0x3FF;
+                return lad;
+            }
+
         }__attribute__((packed));
 
         MMU();
@@ -138,7 +163,7 @@ class MMU {
         static void clearPageProperty(Page &p);
 
         // covert to liner ad struct
-        LinearAD LAD(uptr32_t vAd);     
+        static LinearAD LAD(uptr32_t vAd);     
 
         SegDesc getSegDesc();
 

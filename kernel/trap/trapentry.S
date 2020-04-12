@@ -21,7 +21,7 @@ __alltraps:
     pushl %esp
 
     # call trap(tf), where tf=%esp
-    call _ZN4Trap4trapEv
+    call _ZN4Trap4trapEPNS_9TrapFrameE
 
     # pop the pushed stack pointer
     popl %esp

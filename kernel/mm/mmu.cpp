@@ -83,11 +83,3 @@ void MMU::setPageProperty(Page &p) {
 void MMU::clearPageProperty(Page &p) {
     p.status &= ~(0x2);                 // clear 2-bits to 0
 }
-
-MMU::LinearAD MMU::LAD(uptr32_t vAd) {
-    LinearAD lad;
-    lad.OFF = vAd & 0xFFF;
-    lad.PTI = (vAd >> PGSHIFT) & 0x3FF;
-    lad.PDI = (vAd >> PTSHIFT) & 0x3FF;
-    return lad;
-}

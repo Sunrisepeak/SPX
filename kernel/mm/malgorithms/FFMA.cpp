@@ -35,7 +35,7 @@ List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
     }
     auto it = freeArea.getNodeIterator();
     List<MMU::Page>::DLNode *pnode;
-    // find Node
+    // find fit Area
     while((pnode = it.nextLNode()) != nullptr) {
         if (pnode->data.property >= n) {            // current continuous area[page num] is Ok
             break;
@@ -93,6 +93,7 @@ void FFMA::freePages(void *base, uint32_t n) {
     } else {
         freeArea.insertLNode(pnode->pre, pnArr);
     }
+    nfp += n;
 }
 
 uint32_t FFMA::numFreePages() {

@@ -125,9 +125,24 @@ setCR0(uint32_t v) {
     asm volatile ("movl %0, %%cr0" :: "a" (v));
 }
 
+
+static inline uptr32_t
+getCR2() {
+    uptr32_t cr2;
+    asm volatile ("mov %%cr2, %0" : "=r" (cr2) :: "memory");
+    return cr2;
+}
+
 static inline void
 setCR3(uptr32_t ad) {
     asm volatile ("movl %0, %%cr3" :: "a" (ad));
+}
+
+static inline uptr32_t
+getCR3() {
+    uptr32_t cr3;
+    asm volatile ("mov %%cr3, %0" : "=r" (cr3) :: "memory");
+    return cr3;
 }
 
 static inline uint32_t
@@ -135,6 +150,12 @@ readEflags() {
     uint32_t eflags;
     asm volatile ("pushfl; popl %0" : "=r" (eflags));
     return eflags;
+}
+
+// TLB invalidData
+static inline void
+invlpg(void *addr) {
+    asm volatile ("invlpg (%0)" :: "r" (addr) : "memory");
 }
 
 
