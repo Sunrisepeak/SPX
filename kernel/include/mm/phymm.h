@@ -41,26 +41,43 @@ class PhyMM : public MMU {
 
         void mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm);
 
+        int mapPage(PTEntry *pdt, List<Page>::DLNode *pnode, LinearAD lad, uint32_t perm);
+
         uptr32_t vToPhyAD(uptr32_t vAd);
 
         uptr32_t pToVirAD(uptr32_t pAd);
 
-        List<Page>::DLNode * phyADtoPage(uptr32_t pAd);
+        List<Page>::DLNode * phyAdToPgNode(uptr32_t pAd);
 
-        uptr32_t pnodeToLAD(List<Page>::DLNode *node);
+        uptr32_t pnodeToPageLAD(List<Page>::DLNode *node);
 
         PTEntry * pdeToPTable(const PTEntry &pte);
 
-        template <typename T>
-        void setPermission(T &t, uint32_t perm);                        // by | :    1110 | 1 = 1111
+        List<Page>::DLNode * pteToPgNode(const PTEntry &pte);
 
-        PTEntry * getPTE(const LinearAD &lad, bool create = true);
+        List<Page>::DLNode * pdeToPgNode(const PTEntry &pde);
+
+        PTEntry * getPTE(PTEntry *pdt, const LinearAD &lad, bool create = true);
+
+        void removePTE(PTEntry *pdt, const LinearAD &lad, PTEntry *pte);
+
+        PTEntry * getPDT();
+
+        void removePage(PTEntry *pte, LinearAD la);                     // remove page which is la point
+
+        List<Page>::DLNode * allocPages(uint32_t n = 1);
+
+        List<Page>::DLNode * allocPageAndMap(PTEntry *pdt, LinearAD lad, uint32_t perm);
+
+        void freePages(List<Page>::DLNode *base, uint32_t n = 1);
 
         void * kmalloc(uint32_t size);
 
         void kfree(void *ptr, uint32_t size);
 
         uint32_t numFreePages();
+
+        void tlbInvalidData(PTEntry *pdt, LinearAD lad);
     
     private:
 

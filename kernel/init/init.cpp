@@ -35,11 +35,15 @@ extern "C" void initKernel() {
 
     kernel::pmm.init();
 
-    //kernel::interrupt.init();
+    kernel::interrupt.init();
 
     kernel::vmm.init();
 
-    while (1);
+    //kernel::interrupt.enable();
+
+    while (true) {
+        hlt();
+    };
 }
 
 

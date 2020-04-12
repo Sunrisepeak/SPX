@@ -13,7 +13,8 @@
 
 class VMM {
 
-    public:       //manager
+    public:
+               //manager
         /*      MM --------> VMA        */
         struct MM;
         
@@ -29,9 +30,14 @@ class VMM {
         struct MM {
             List<VMA> vmaList;                      // MM manager of vam-list
             List<VMA>::DLNode *mmap_cache;          // current accessed vma, used for speed purpose
-            MMU::PTEntry *pgdir;                    // the PDT of these vma
+            MMU::PTEntry *pdt;                      // the PDT of these vma
             void *sm_priv;                          // the private data for swap manager
         } __attribute__((packed));
+
+
+        List<MM>::DLNode *checkMM { nullptr };                    // mark page fault info
+
+
 
         void init();
 
@@ -47,14 +53,16 @@ class VMM {
 
         void mmDestroy(List<MM>::DLNode *mm);
 
-        uint32_t doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr);
-
         void checkVmm();        // check_vmm - check correctness of vmm
 
         void checkVma();
 
         // check if vma1 overlaps vma2 ?
         void checkVamOverlap(List<VMA>::DLNode *prev, List<VMA>::DLNode *next);
+
+        void checkPageFault();
+
+        int doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr);
 
     private:
 

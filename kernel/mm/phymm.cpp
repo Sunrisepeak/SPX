@@ -1,7 +1,9 @@
 #include <phymm.h>
 #include <assert.h>
+#include <error.h>
 #include <kdebug.h>
 #include <sync.h>
+#include <swap.h>
 #include <ostream.h>
 #include <utils.hpp>
 
@@ -24,9 +26,9 @@ void PhyMM::init() {
     initPage();
 
     // map to page-dir-table by Virtual Page Table
-    bootPDT[LAD(VPT).PDI].p_ppn = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
-    bootPDT[LAD(VPT).PDI].p_p = 1;
-    bootPDT[LAD(VPT).PDI].p_rw = 1;
+    bootPDT[LinearAD::LAD(VPT).PDI].p_ppn = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
+    bootPDT[LinearAD::LAD(VPT).PDI].p_p = 1;
+    bootPDT[LinearAD::LAD(VPT).PDI].p_rw = 1;
 
     /*      wait 2020.4.5       */
     // map kernel segment pAD[0 ~ KERNEL_MEM_SIZE] to vAD[KERNEL_BASE ~ (KERNEL_BASE + KERNEL_MEM_SIZE)]
@@ -109,7 +111,7 @@ void PhyMM::initPage() {
                 begin = Utils::roundUp(begin, PGSIZE);
                 end = Utils::roundDown(end, PGSIZE);
                 if (begin < end) {
-                    manager->initMemMap(phyADtoPage(begin), (end - begin) / PGSIZE);
+                    manager->initMemMap(phyAdToPgNode(begin), (end - begin) / PGSIZE);
                 }
             }
         }
@@ -174,22 +176,56 @@ void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm)
     out.flush();
 
     // map by page-size
-    uint32_t n = Utils::roundUp(size + LAD(lad).OFF, PGSIZE) / PGSIZE;
+    uint32_t n = Utils::roundUp(size + LinearAD::LAD(lad).OFF, PGSIZE) / PGSIZE;
 
     out.write("\nn = ");
     out.writeValue(n);
     out.flush();
 
     for (uint32_t i = 0; i < n; i++) {
-        PTEntry *pte = getPTE(LAD(lad));
+        PTEntry *pte = getPTE(bootPDT, LinearAD::LAD(lad));
 
-        setPermission(*pte, PTE_P | perm);
+        pte->setPermission(PTE_P | perm);
         pte->p_ppn = (pad >> PGSHIFT);         // set physical address (20-bits)
         
         lad += PGSIZE;
         pad += PGSIZE;
     }
 }
+
+int PhyMM::mapPage(PTEntry *pdt, List<Page>::DLNode *pnode, LinearAD lad, uint32_t perm) {
+    DEBUGPRINT("PhyMM::mapPage");
+    auto pte = getPTE(pdt, lad);
+    if (pte == nullptr) {
+        return -E_NO_MEM;
+    }
+
+    if (pte->p_p) {         // is present?
+        auto oldPnode = pteToPgNode(*pte);
+        if (oldPnode == pnode) {
+            pnode->data.ref--;
+        } else {
+            removePTE(pdt, lad, pte);
+        }
+    }
+
+    // here, have a Bug about order...
+    // set pte content : please take less to great order[1 -> 2]
+    pte->setPermission(perm);           // previous 1
+
+    pte->p_ppn = pnode - pNodeArr;      // back     2
+    pte->p_p = 1;
+
+    //pte->isEmpty();
+    
+    
+    pnode->data.ref++;
+
+    tlbInvalidData(pdt, lad);
+
+    return 0;
+}
+
 
 uptr32_t PhyMM::vToPhyAD(uptr32_t kvAd) {
     if (KERNEL_BASE <= kvAd && kvAd <= KERNEL_BASE + KERNEL_MEM_SIZE) {
@@ -205,28 +241,30 @@ uptr32_t PhyMM::pToVirAD(uptr32_t pAd) {
     return 0;
 }
 
-List<MMU::Page>::DLNode * PhyMM::phyADtoPage(uptr32_t pAd) {
+List<MMU::Page>::DLNode * PhyMM::phyAdToPgNode(uptr32_t pAd) {
     uint32_t pIndex = pAd >> PGSHIFT;       // get pages-No
     return &(pNodeArr[pIndex]);
 }
 
-uptr32_t PhyMM::pnodeToLAD(List<Page>::DLNode *node) {
+uptr32_t PhyMM::pnodeToPageLAD(List<Page>::DLNode *node) {
     uint32_t pageNo = node - pNodeArr;       // physical memory page NO
     return pToVirAD(pageNo << PGSHIFT);
 }
 
 MMU::PTEntry * PhyMM::pdeToPTable(const PTEntry &pte) {
-    uptr32_t ptAD= pToVirAD(pte.p_ppn);
+    uptr32_t ptAD= pToVirAD(pte.p_ppn << PGSHIFT);
     return (PTEntry *)ptAD;
 }
 
-template <typename T>
-void PhyMM::setPermission(T &t, uint32_t perm) {
-    uint32_t &temp =  *(uint32_t *)(&t);  // format data to uint32_t
-    temp |= perm;
+List<MMU::Page>::DLNode * PhyMM::pteToPgNode(const PTEntry &pte) {
+    return &(pNodeArr[pte.p_ppn]);
 }
 
-MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
+List<MMU::Page>::DLNode * PhyMM::pdeToPgNode(const PTEntry &pde) {
+    return &(pNodeArr[pde.p_ppn]);
+}
+
+MMU::PTEntry * PhyMM::getPTE(PTEntry *pdt, const LinearAD &lad, bool create) {
     PTEntry &pde = bootPDT[lad.PDI];
     if (!(pde.p_p) && create) {                          // check present bit and is create?
         /*      wait 2020.4.6      */
@@ -236,8 +274,9 @@ MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
         }
         pnode->data.ref = 1;
         // clear page content
-        Utils::memset(pnodeToLAD(pnode), 0, PGSIZE);
+        Utils::memset((void *)(pnodeToPageLAD(pnode)), 0, PGSIZE);
         // set permssion
+        pde.p_ppn = pnode - pNodeArr;
         pde.p_us = 1;
         pde.p_rw = 1;
         pde.p_p = 1;
@@ -245,15 +284,95 @@ MMU::PTEntry * PhyMM::getPTE(const LinearAD &lad, bool create) {
     return &(pdeToPTable(pde)[lad.PTI]);
 }
 
+void PhyMM::removePTE(PTEntry *pdt, const LinearAD &lad, PTEntry *pte) {
+    DEBUGPRINT("PhyMM::removePTE");
+     if (pte->p_p) {
+        auto pnode = pteToPgNode(*pte);
+        if (--(pnode->data.ref) == 0) {
+            freePages(pnode);
+        }
+        // set zero
+        Utils::memset(pte, 0, sizeof(PTEntry));
+        tlbInvalidData(pdt, lad);
+    }
+}
+
+
+MMU::PTEntry * PhyMM::getPDT() {
+    return bootPDT;
+}
+
+void PhyMM::removePage(PTEntry *pdt, LinearAD lad) {
+    auto pte = getPTE(pdt, lad, false);
+    if (pte != nullptr) {
+        removePTE(pdt, lad, pte);
+    }
+}
+
+List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
+    List<Page>::DLNode *pnode = nullptr;
+    bool intr_flag;
+    
+    while (true) {
+         local_intr_save(intr_flag);
+         {
+              pnode = manager->allocPages(n);
+         }
+         local_intr_restore(intr_flag);
+
+         extern int swap_init_ok;
+
+         if (pnode != nullptr || n > 1 || swap_init_ok == 0) break;
+         
+         //extern struct mm_struct *check_mm_struct;
+         //cprintf("page %x, call swap_out in alloc_pages %d\n",page, n);
+         //swap_out(check_mm_struct, n, 0);
+    }
+    //cprintf("n %d,get page %x, No %d in alloc_pages\n",n,page,(page-pages));
+    return pnode;
+}
+
+List<MMU::Page>::DLNode * PhyMM::allocPageAndMap(PTEntry *pdt, LinearAD lad, uint32_t perm) {
+    DEBUGPRINT("PhyMM::allocPageAndMap");
+    auto pnode = allocPages();
+    if (pnode != nullptr) {
+        if (mapPage(pdt, pnode, lad, perm) != 0) {
+            freePages(pnode);
+            return nullptr;
+        }
+        //if (swap_init_ok){
+            //swap_map_swappable(check_mm_struct, la, page, 0);
+            //page->pra_vaddr=la;
+            //assert(page_ref(page) == 1);
+            //cprintf("get No. %d  page: pra_vaddr %x, pra_link.prev %x, pra_link_next %x in pgdir_alloc_page\n", (page-pages), page->pra_vaddr,page->pra_page_link.prev, page->pra_page_link.next);
+        //    BREAKPOINT("swap not implements");
+        //}
+
+    }
+
+    return pnode;
+}
+
+//free_pages - call pmm->free_pages to free a continuous n*PAGESIZE memory 
+void PhyMM::freePages(List<Page>::DLNode *base, uint32_t n) {
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        manager->freePages(base, n);
+    }
+    local_intr_restore(intr_flag);
+}
+
+
 void * PhyMM::kmalloc(uint32_t size) {
     DEBUGPRINT("PhyMM::kmalloc");
     void * ptr = nullptr;
     List<Page>::DLNode *base = nullptr;
     assert(size > 0 && size < 1024*0124);
     uint32_t num_pages = (size + PGSIZE - 1 ) / PGSIZE;
-    base = manager->allocPages(num_pages);
+    base = allocPages(num_pages);
     assert(base != nullptr);
-    ptr = (void *)pnodeToLAD(base);
+    ptr = (void *)pnodeToPageLAD(base);
     return ptr;
 }
 
@@ -262,8 +381,8 @@ void PhyMM::kfree(void *ptr, uint32_t size) {
     assert(ptr != nullptr);
     List<Page>::DLNode *base = nullptr;
     uint32_t num_pages = (size + PGSIZE - 1) / PGSIZE;
-    base = phyADtoPage(vToPhyAD((uptr32_t)ptr));
-    manager->freePages(base, num_pages);
+    base = phyAdToPgNode(vToPhyAD((uptr32_t)ptr));
+    freePages(base, num_pages);
 }
 
 uint32_t PhyMM::numFreePages() {
@@ -275,4 +394,10 @@ uint32_t PhyMM::numFreePages() {
     }
     local_intr_restore(intr_flag);
     return ret;
+}
+
+void PhyMM::tlbInvalidData(PTEntry *pdt, LinearAD lad) {
+    if (getCR3() == vToPhyAD((uptr32_t)pdt)) {
+        invlpg((void *)(lad.Integer()));
+    }
 }

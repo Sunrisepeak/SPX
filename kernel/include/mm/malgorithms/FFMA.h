@@ -16,7 +16,7 @@ class FFMA : public PmmManager{
                                                                         // the initial free physical memory space 
         List<MMU::Page>::DLNode * allocPages(uint32_t n = 1);      // allocate >=n pages, depend on the allocation algorithm 
 
-        void freePages(void *base, uint32_t n);       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
+        void freePages(void *base, uint32_t n = 1);       // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
 
         uint32_t numFreePages();          // return the number of free pages   
     

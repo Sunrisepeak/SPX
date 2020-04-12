@@ -1,8 +1,10 @@
 #include <vmm.h>
 #include <global.h>
 #include <assert.h>
+#include <error.h>
 #include <kdebug.h>
 #include <list.hpp>
+#include <utils.hpp>
 
 void VMM::init() {
     checkVmm();
@@ -109,6 +111,7 @@ void VMM::insertVma(List<MM>::DLNode *mm, List<VMA>::DLNode *vma) {
     }
     out.write("\nnodeNum: ");
     out.writeValue((mm->data.vmaList.length()));
+    out.flush();
 }
 
 List<VMM::MM>::DLNode * VMM::mmCreate() {
@@ -118,7 +121,7 @@ List<VMM::MM>::DLNode * VMM::mmCreate() {
     if (mm != nullptr) {
         mm->next = mm->pre = nullptr;
         mm->data.mmap_cache = nullptr;
-        mm->data.pgdir = nullptr;
+        mm->data.pdt = nullptr;
         //mm->data.map_count = 0;
 
         if (false) while(1);//swap_init_mm(mm);
@@ -128,20 +131,23 @@ List<VMM::MM>::DLNode * VMM::mmCreate() {
 }
 
 void VMM::mmDestroy(List<MM>::DLNode *mm) {
+
     auto it = mm->data.vmaList.getNodeIterator();
     List<VMA>::DLNode *vma;
     while ((vma = it.nextLNode()) != nullptr) {
+
+        #ifdef VMM_DEBUG
+            out.write("\ndestructor: vma = ");
+            out.writeValue((uint32_t)vma);
+            out.flush();
+        #endif
+
         mm->data.vmaList.deleteLNode(vma);
         kernel::pmm.kfree(vma, sizeof(List<VMA>::DLNode));  //kfree vma        
     }
     kernel::pmm.kfree(mm, sizeof(List<MM>::DLNode));        //kfree mm
     mm = nullptr;
 }
-
-uint32_t VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
-    return 0;
-}
-
 
 void VMM::checkVmm() {
     DEBUGPRINT("VMM::checkVmm");
@@ -152,11 +158,11 @@ void VMM::checkVmm() {
     out.flush();
     
     checkVma();
-    //check_pgfault();
+    checkPageFault();
     
     assert(nr_free_pages_store == kernel::pmm.numFreePages());
 
-    //cprintf("check_vmm() succeeded.\n");
+    //DEBUGPRINT("check_vmm() succeeded.\n");
 }
 
 void VMM::checkVma() {
@@ -214,19 +220,9 @@ void VMM::checkVma() {
         assert(vma2->data.vm_start == i  && vma2->data.vm_end == i  + 2);
     }
 
-    OStream out("", "blue");
-    out.write("\ncheckVma(): vmaBelow5 [i, start, end]\n");
-    for (uint32_t i = 4; i >= 0; i--) {
+    // tset less than 5
+    for (int i = 4; i >= 0; i--) {
         auto *vma_below_5= findVma(mm,i);
-        if (vma_below_5 != nullptr ) {
-           out.writeValue(i);
-           out.write(", ");
-           out.writeValue(vma_below_5->data.vm_start);
-           out.write(", ");
-           out.writeValue(vma_below_5->data.vm_end);
-           out.write("\n");
-           out.flush();
-        }
         assert(vma_below_5 == nullptr);
     }
 
@@ -234,9 +230,8 @@ void VMM::checkVma() {
 
     assert(nr_free_pages_store == kernel::pmm.numFreePages());
 
-    out.write("check_vma_struct() succeeded!\n");
+    DEBUGPRINT("CheckVma succeeded!");
 
-    BREAKPOINT("IIIIII");
 }
 
 // check if vma1 overlaps vma2 ?
@@ -244,4 +239,142 @@ void VMM::checkVamOverlap(List<VMA>::DLNode *prev, List<VMA>::DLNode *next) {
     assert(prev->data.vm_start < prev->data.vm_end);
     assert(prev->data.vm_end <= next->data.vm_start);
     assert(next->data.vm_start < next->data.vm_end);
+}
+
+void VMM::checkPageFault() {
+    DEBUGPRINT("VMM::checkPageFault");
+    uint32_t nr_free_pages_store = kernel::pmm.numFreePages();
+
+    checkMM = mmCreate();
+    assert(checkMM != nullptr);
+
+    auto mm = checkMM;
+    auto pdt = mm->data.pdt = kernel::pmm.getPDT();
+    assert(pdt[0].isEmpty());
+
+    auto vma = vmaCreate(0, PTSIZE, VM_WRITE);
+    assert(vma != nullptr);
+
+    insertVma(mm, vma);
+
+    uptr32_t addr = 0x100;
+    assert(findVma(mm, addr) == vma);
+
+    // default page exception test
+    int i, sum = 0;
+    for (i = 0; i < 100; i ++) {
+        *(char *)(addr + i) = i;
+        sum += i;
+    }
+    for (i = 0; i < 100; i ++) {
+        sum -= *(char *)(addr + i);
+    }
+    assert(sum == 0);
+
+    kernel::pmm.removePage(pdt, MMU::LinearAD::LAD(Utils::roundDown(addr, PGSIZE)));
+    kernel::pmm.freePages(kernel::pmm.pdeToPgNode(pdt[0]));    //pdt[0] = 0;
+
+    mm->data.pdt = nullptr;
+    mmDestroy(mm);
+
+    checkMM = nullptr;
+
+    assert(nr_free_pages_store == kernel::pmm.numFreePages());
+
+    DEBUGPRINT("check_pgfault() succeeded!");
+}
+
+
+// do_pgfault - interrupt handler to process the page fault execption
+int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
+
+    OStream out("\n\n errorCode = ", "blue");
+    out.writeValue(errorCode);
+    out.flush();
+
+    int ret = -E_INVAL;
+    uint32_t perm;
+    MMU::PTEntry *pte = nullptr;
+
+    //try to find a vma which include addr
+    auto vma = findVma(mm, addr);
+
+    //pgfault_num++;
+    //If the addr is in the range of a mm's vma?
+    if (vma == nullptr || vma->data.vm_start > addr) {
+        DEBUGPRINT("invalid address, not exist in mm");
+    } 
+    //check the errorCode
+    switch (errorCode & 0b11) {
+        case 0: /* error code flag : (W/R=0, P=0): read, not present */
+            if (!(vma->data.vm_flags & (VM_READ | VM_EXEC))) {
+                DEBUGPRINT("do_pgfault failed: error code flag = read AND not present, but the addr's vma cannot read or exec");
+                goto failed;
+            }
+            break;
+
+        case 1:     /* error code flag : (W/R=0, P=1): read, present */
+            DEBUGPRINT("do_pgfault failed: error code flag = read AND present");
+            goto failed;
+
+        case 2:     /* error code flag : (W/R=1, P=0): write, not present */
+            if (!(vma->data.vm_flags & VM_WRITE)) {
+                DEBUGPRINT("do_pgfault failed: error code flag = write AND not present, but the addr's vma cannot write");
+                goto failed;
+            }
+            break;
+
+        default: 
+            break;   /* error code flag : default is 3 ( W/R=1, P=1): write, present */
+    }
+   
+
+    perm = PTE_U;
+    if (vma->data.vm_flags & VM_WRITE) {
+        perm |= PTE_W;
+    }
+
+    addr = Utils::roundDown(addr, PGSIZE);
+
+    ret = -E_NO_MEM;
+
+    // try to find a pte, if pte's PT(Page Table) isn't existed, then create a PT.
+    // (notice the 3th parameter '1')
+    if ((pte = kernel::pmm.getPTE(mm->data.pdt, MMU::LinearAD::LAD(addr))) == nullptr) {
+        DEBUGPRINT("get_pte in do_pgfault failed");
+        goto failed;
+    }
+    
+    if (pte->isEmpty()) { // if the phy addr isn't exist, then alloc a page & map the phy addr with logical addr
+        if (kernel::pmm.allocPageAndMap(mm->data.pdt, MMU::LinearAD::LAD(addr), perm) == nullptr) {
+            DEBUGPRINT("pgdir_alloc_page in do_pgfault failed");
+            goto failed;
+        }
+    } else { 
+        
+        // if this pte is a swap entry, then load data from disk to a page with phy addr
+        // and call page_insert to map the phy addr with logical addr
+        /*
+        if(swap_init_ok) {
+            List<MMU::Page>::DLNode *pnode = nullptr;
+            if ((ret = swap_in(mm, addr, &page)) != 0) {
+                DEBUGPRINT("swap_in in do_pgfault failed\n");
+                goto failed;
+            }    
+            page_insert(mm->pgdir, page, addr, perm);
+            swap_map_swappable(mm, addr, page, 1);
+            page->pra_vaddr = addr;
+        }
+        else {
+            DEBUGPRINT("no swap_init_ok but ptep is failed\n");
+            goto failed;
+        }*/
+        BREAKPOINT("swap not implement");
+   }
+
+   ret = 0;
+
+failed:
+
+    return ret;
 }
