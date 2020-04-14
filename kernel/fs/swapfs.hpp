@@ -22,12 +22,17 @@ class SwapFs {
             Swap::setMaxSwapOffset(IDE::devSize(SWAP_DEV_NO) / (PGSIZE / SECTSIZE));
         }
 
-        static uint32_t swapfsRead(SwapEntry entry, MMU::Page *page) {
-
+        static uint32_t swapfsRead(SwapEntry *entry, Linker<MMU::Page>::DLNode *pnode) {
+            return IDE::readSecs(
+                SWAP_DEV_NO,
+                (entry->getSecno()) * PAGE_NSECT,
+                kernel::pmm.pnodeToPageLAD(pnode),
+                PAGE_NSECT
+            );
         }
         
         static uint32_t swapfsWrite(SwapEntry entry, MMU::Page *page) {
-
+            return 0;
         }
 };
 

@@ -10,15 +10,13 @@ class SwapFifo : public SwapManager {
 
         int init();
 
-        int initMM(VMM::MM *mm);
-
         int tickEvent(VMM::MM *mm);
 
-        int mapSwappable(VMM::MM *mm, uptr32_t addr, MMU::Page *page, uint32_t swapIn);
+        int mapSwappable(VMM::MM *mm, uptr32_t addr, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn);
 
         int setUnswappable(VMM::MM *mm, uptr32_t addr);
         
-        int swapOutVictim(VMM::MM *mm, MMU::Page **ptrPage, uint32_t inTick);
+        int swapOutVictim(VMM::MM *mm, Linker<MMU::Page>::DLNode **ptrPage, uint32_t inTick);
         
 };
 
