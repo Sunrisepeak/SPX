@@ -4,6 +4,7 @@
 #include <error.h>
 #include <kdebug.h>
 #include <list.hpp>
+#include <queue.hpp>
 #include <utils.hpp>
 
 void VMM::init() {
@@ -119,13 +120,17 @@ List<VMM::MM>::DLNode * VMM::mmCreate() {
     auto mm = (List<MM>::DLNode *)(kernel::pmm.kmalloc(sizeof(List<MM>::DLNode)));
 
     if (mm != nullptr) {
+
         mm->next = mm->pre = nullptr;
         mm->data.mmap_cache = nullptr;
         mm->data.pdt = nullptr;
-        //mm->data.map_count = 0;
 
-        if (false) while(1);//swap_init_mm(mm);
-        else mm->data.sm_priv = nullptr;
+        new (&(mm->data.vmaList)) List<VMA>();
+        new (&(mm->data.smPriv)) Queue<VMA>();
+
+        if (kernel::swap.initOk()) {
+            //swap_init_mm(mm);
+        }
     }
     return mm;
 }

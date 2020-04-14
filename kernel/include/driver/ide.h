@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-03-20 22:16:02 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-09 20:52:19
+ * @Last Modified time: 2020-04-14 23:19:44
  */
 
 #ifndef _IDE_H
@@ -36,9 +36,11 @@ class IDE {
 
         static uint32_t waitReady(uint16_t iobase, bool check = false);
 
-        static uint32_t readSecs(uint16_t ideno, uint32_t secno, void *dst, uint32_t nsecs);
+        static uint32_t readSecs(uint16_t ideno, uint32_t secno, uptr32_t dst, uint32_t nsecs);
 
         static uint32_t writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_t nsecs);
+
+        static uint32_t devSize(uint16_t ideno);
 
     private:
     

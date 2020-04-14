@@ -15,6 +15,14 @@ namespace kernel {
     IDE ide;
 
     VMM vmm;
+
+    Swap swap;
+
+    namespace algorithms {
+
+        SwapFifo swapFifo;
+    
+    };
 };
 
 void *operator new(uint32_t size) {

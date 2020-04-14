@@ -66,3 +66,7 @@ const IDE::Channels IDE::channels[2] = {
 };
 
 IDE::IdeDevice IDE::ideDevs[MAX_IDE] = { {0} };
+
+/* ------------------------->Swap<------------------------------- */
+
+uint32_t Swap::maxSwapOffset { 0 };

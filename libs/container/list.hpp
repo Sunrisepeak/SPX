@@ -2,16 +2,15 @@
 #define _LIST_HPP
 
 #include <defs.h>
+#include <linker.hpp>
 #include <ostream.h>
 
 template <typename Object>
-class List {
-    public:                                          
-        // Double List Node                                     
-        struct DLNode {
-            Object data;  
-            DLNode *pre, *next;                                               
-        }__attribute__((packed));
+class List : public Linker<Object> {
+
+    public:
+
+        using typename Linker<Object>::DLNode;
 
         // List Head Node                                                
         struct LHeadNode {
@@ -49,7 +48,8 @@ class List {
                 
 
             private:
-                struct DLNode *currentNode { nullptr };
+
+                DLNode *currentNode { nullptr };
         };
 
         List();
@@ -132,22 +132,11 @@ void List<Object>::headInsertLNode(DLNode *node) {
 
 template <typename Object>
 void List<Object>::insertLNode(DLNode *node1, DLNode *node2) {
-    if (node1 == nullptr) {
-        return;
-    }
-    if (node1->next == nullptr) {
-        addLNode(*node2);
-    } else {
-        node2->pre = node1;
-        node2->next = node1->next;
 
-        if (node1->next != nullptr) {
-            node1->next->pre = node2;
-        }
-        node1->next = node2;
+    Linker<Object>::insert(node1, node2);
 
-        headNode.eNum++;
-    }
+    headNode.eNum++;
+
 }
 
 template <typename Object>
@@ -163,9 +152,9 @@ void List<Object>::deleteLNode(DLNode *node) {
         headNode.last = node->pre;
         headNode.last->next = nullptr;
     } else {                            // is Mid Node
-        node->next->pre = node->pre;
-        node->pre->next = node->next;
+        Linker<Object>::remove(node);
     }
+    
     node->next = node->pre = nullptr;
     
     headNode.eNum--;

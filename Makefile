@@ -25,7 +25,9 @@ OBJ_DIR := obj/
 BIN_DIR := bin/
 
 # libs and include
-LIBS_DIR := libs/
+LIBS_DIR := libs/ \
+			libs/container/
+
 INCLUDE := $(addprefix -I,$(LIBS_DIR))
 
 # src file type
@@ -44,8 +46,8 @@ main : $(mbr_block) $(kernel) $(spx_img)
 	$(call exeShellScript,create_img.sh,$(spx_img),$(mbr_block),$(kernel))
 	@echo success, create spx.img
 
-
-# --------------------------------Create mbr_block Start--------------------------->>>
+##################################### Part I ######################################
+# -------------------------------Create mbr_block Start--------------------------->>>
 
 # boot dir
 BOOT_DIR := boot/
@@ -108,7 +110,8 @@ KSRC_DIR	:=	kernel/init/ \
 				kernel/mm/ \
 				kernel/mm/malgorithms/ \
 				kernel/trap/ \
-				libs/
+				libs/ \
+				libs/container/ 
 
 # all file of src
 LOCAL_SRC_ALL := $(call getFileList,.S,$(KSRC_DIR))
@@ -134,8 +137,7 @@ $(kernel) : $(LOCAL_OBJ_ALL)
 	objdump -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > obj/kernel.sym
 	
 # <<<-------------------------------------------------------------------------------
-
-
+##################################### Part III ######################################
 # -----------------------------------Create spx.img Start------------------------>>>
 
 $(spx_img) : $(mbr_block)

@@ -9,6 +9,7 @@
 #include <defs.h>
 #include <memlayout.h>
 #include <ostream.h>
+#include <kdebug.h>
 
 #define SEG_NULL        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
@@ -99,7 +100,7 @@ class MMU {
             uint32_t property;                      //
         }__attribute__((packed));
         
-        // page table entry        
+        // page table entry | Swap Entry  [reuse struct]        
         struct PTEntry {
             uint32_t p_p : 1;                       // present bits
             uint32_t p_rw : 1;                      // R/W bits
@@ -119,7 +120,14 @@ class MMU {
 
             void setPermission(uint32_t perm) {
                 auto &temp = (*(uint32_t *)(this));
-                temp |= perm;
+                temp |= (perm & 0xFFF);
+            }
+
+            uint32_t getSecno() {
+                if (p_p) {
+                    BREAKPOINT("error operator, this isn't swap entry.");
+                }
+                return (*(uint32_t *)(this)) >> 8;
             }
 
         }__attribute__((packed));

@@ -26,6 +26,5 @@ typedef char *cstring;
 typedef const char *ccstring;
 
 
-
 #endif
 

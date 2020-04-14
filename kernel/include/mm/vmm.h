@@ -6,6 +6,7 @@
 #include <mmu.h>
 #include <phymm.h>
 #include <list.hpp>
+#include <queue.hpp>
 
 #define VM_READ                 0x00000001
 #define VM_WRITE                0x00000002
@@ -31,7 +32,7 @@ class VMM {
             List<VMA> vmaList;                      // MM manager of vam-list
             List<VMA>::DLNode *mmap_cache;          // current accessed vma, used for speed purpose
             MMU::PTEntry *pdt;                      // the PDT of these vma
-            void *sm_priv;                          // the private data for swap manager
+            Queue<MMU::Page> smPriv;                          // the private data for swap manager
         } __attribute__((packed));
 
 
