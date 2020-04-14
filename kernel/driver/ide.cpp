@@ -149,5 +149,12 @@ uint32_t IDE::writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_
     return ret;
 }
 
+uint32_t IDE::devSize(uint16_t ideno) {
+    if (isValid(ideno)) {
+        return ideDevs[ideno].size;
+    }
+    return 0;
+}
+
 
 

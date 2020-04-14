@@ -1,6 +1,7 @@
 #include <phymm.h>
 #include <assert.h>
 #include <error.h>
+#include <global.h>
 #include <kdebug.h>
 #include <sync.h>
 #include <swap.h>
@@ -209,16 +210,13 @@ int PhyMM::mapPage(PTEntry *pdt, List<Page>::DLNode *pnode, LinearAD lad, uint32
         }
     }
 
-    // here, have a Bug about order...
+    // [IMPLICATION BUG] here, have a Bug about order...
     // set pte content : please take less to great order[1 -> 2]
     pte->setPermission(perm);           // previous 1
 
     pte->p_ppn = pnode - pNodeArr;      // back     2
     pte->p_p = 1;
 
-    //pte->isEmpty();
-    
-    
     pnode->data.ref++;
 
     tlbInvalidData(pdt, lad);
@@ -320,9 +318,7 @@ List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
          }
          local_intr_restore(intr_flag);
 
-         extern int swap_init_ok;
-
-         if (pnode != nullptr || n > 1 || swap_init_ok == 0) break;
+         if (pnode != nullptr || n > 1 || kernel::swap.initOk() == 0) break;
          
          //extern struct mm_struct *check_mm_struct;
          //cprintf("page %x, call swap_out in alloc_pages %d\n",page, n);

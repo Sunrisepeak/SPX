@@ -2,11 +2,11 @@
  * @Author: SPeak Shen 
  * @Date: 2020-04-10 09:36:28 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-10 21:09:17
+ * @Last Modified time: 2020-04-14 11:08:06
  */
 
-#ifndef _GLOBAL_HPP
-#define _GLOBAL_HPP
+#ifndef _GLOBAL_H
+#define _GLOBAL_H
 
 #include <defs.h>
 #include <flags.h>
@@ -18,6 +18,8 @@
 #include <mmu.h>
 #include <ide.h>
 #include <vmm.h>
+#include <swap.h>
+#include <SwapFifo.h>
 #include <ostream.h>
 
 namespace kernel {
@@ -31,7 +33,18 @@ namespace kernel {
     extern IDE ide;
 
     extern VMM vmm;
+
+    extern Swap swap;
+
+    namespace algorithms {
+
+        extern SwapFifo swapFifo;
+    
+    };
 };
+
+// reuse struct
+using SwapEntry = MMU::PTEntry;
 
 void * operator new(uint32_t size);
 void * operator new[](uint32_t size);

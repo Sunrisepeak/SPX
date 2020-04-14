@@ -39,7 +39,7 @@ extern "C" void initKernel() {
 
     kernel::vmm.init();
 
-    //kernel::interrupt.enable();
+    kernel::interrupt.enable();
 
     while (true) {
         hlt();

@@ -40,6 +40,8 @@ class IDE {
 
         static uint32_t writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_t nsecs);
 
+        static uint32_t devSize(uint16_t ideno);
+
     private:
     
         static const Channels channels[];
