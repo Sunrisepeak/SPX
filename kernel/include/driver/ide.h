@@ -38,7 +38,7 @@ class IDE {
 
         static uint32_t readSecs(uint16_t ideno, uint32_t secno, uptr32_t dst, uint32_t nsecs);
 
-        static uint32_t writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_t nsecs);
+        static uint32_t writeSecs(uint16_t ideno, uint32_t secno, uptr32_t src, uint32_t nsecs);
 
         static uint32_t devSize(uint16_t ideno);
 

@@ -37,7 +37,11 @@ extern "C" void initKernel() {
 
     kernel::interrupt.init();
 
-    kernel::vmm.init();
+    kernel::vmm.init();             // page fault need interrupt
+
+    IDE::init();
+
+    kernel::swap.swapInit();
 
     kernel::interrupt.enable();
 

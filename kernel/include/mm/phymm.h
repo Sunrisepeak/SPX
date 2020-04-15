@@ -95,8 +95,6 @@ class PhyMM : public MMU {
 
         uint32_t numPage;
 
-        FFMA ff;
-        
         PmmManager *manager;
 
         List<Page>::DLNode *pNodeArr;      // contain page-attribute[data] in Node

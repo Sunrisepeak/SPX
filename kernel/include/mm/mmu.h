@@ -98,7 +98,8 @@ class MMU {
             uint32_t ref;                           // page's reference counter
             uint8_t status;                         // 0
             uint32_t property;                      //
-        }__attribute__((packed));
+            uptr32_t pra_vaddr;                     // 
+        }__attribute__((packed));                   // used for pra (page replace algorithm)
         
         // page table entry | Swap Entry  [reuse struct]        
         struct PTEntry {
@@ -130,6 +131,20 @@ class MMU {
                 return (*(uint32_t *)(this)) >> 8;
             }
 
+            void setSecno(uint32_t secno) {
+                if (p_p) {
+                    BREAKPOINT("error operator, this isn't swap entry.");
+                }
+                auto &temp = (*(uint32_t *)(this));
+                temp ^= temp;
+                temp |= (secno << 8);
+            }
+
+            PTEntry & operator=(uint32_t value) {
+                (*(uint32_t *)(this)) = value;
+                return *this;
+            }
+
         }__attribute__((packed));
 
         struct LinearAD {
@@ -148,6 +163,11 @@ class MMU {
                 lad.PTI = (vAd >> PGSHIFT) & 0x3FF;
                 lad.PDI = (vAd >> PTSHIFT) & 0x3FF;
                 return lad;
+            }
+
+            LinearAD & operator=(uint32_t value) {
+                (*(uint32_t *)(this)) = value;
+                return *this;
             }
 
         }__attribute__((packed));

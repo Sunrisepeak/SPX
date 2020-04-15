@@ -21,6 +21,8 @@ namespace kernel {
     namespace algorithms {
 
         SwapFifo swapFifo;
+
+        FFMA ffma;
     
     };
 };

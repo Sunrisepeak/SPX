@@ -16,6 +16,7 @@
 #include <phymm.h>
 #include <interrupt.h>
 #include <mmu.h>
+#include <FFMA.h>
 #include <ide.h>
 #include <vmm.h>
 #include <swap.h>
@@ -39,6 +40,8 @@ namespace kernel {
     namespace algorithms {
 
         extern SwapFifo swapFifo;
+
+        extern FFMA ffma;
     
     };
 };

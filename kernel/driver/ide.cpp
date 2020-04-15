@@ -30,6 +30,7 @@ void IDE::init() {
 
         /* step3: polling */
         if (inb(iobase + ISA_STATUS) == 0 || waitReady(iobase, true) != 0) {
+            DEBUGPRINT("ide fail...");
             continue ;
         }
 
@@ -122,7 +123,7 @@ uint32_t IDE::readSecs(uint16_t ideno, uint32_t secno, uptr32_t dst, uint32_t ns
     return ret;
 }
 
-uint32_t IDE::writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_t nsecs) {
+uint32_t IDE::writeSecs(uint16_t ideno, uint32_t secno, uptr32_t src, uint32_t nsecs) {
     assert(nsecs <= MAX_NSECS && isValid(ideno));
     assert(secno < MAX_DISK_NSECS && secno + nsecs <= MAX_DISK_NSECS);
     uint16_t iobase = IO_BASE(ideno), ioctrl = IO_CTRL(ideno);
@@ -143,7 +144,7 @@ uint32_t IDE::writeSecs(uint16_t ideno, uint32_t secno, const void *src, uint32_
         if ((ret = waitReady(iobase, true)) != 0) {
             break;
         }
-        outsl(iobase, src, SECTSIZE / sizeof(uint32_t));
+        outsl(iobase, (void *)src, SECTSIZE / sizeof(uint32_t));
     }
 
     return ret;

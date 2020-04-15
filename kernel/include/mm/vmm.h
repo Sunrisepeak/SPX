@@ -38,7 +38,9 @@ class VMM {
 
         List<MM>::DLNode *checkMM { nullptr };                    // mark page fault info
 
+        uint32_t pageFaultNum { 0 };
 
+        /*  -----------Function---------------- */
 
         void init();
 
@@ -68,6 +70,8 @@ class VMM {
     private:
 
         List<MM> mmList;
+
+        
 
 };
 

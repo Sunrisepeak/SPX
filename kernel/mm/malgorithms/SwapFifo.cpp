@@ -1,6 +1,8 @@
 #include <SwapFifo.h>
 #include <swapfs.hpp>
 #include <linker.hpp>
+#include <assert.h>
+#include <kdebug.h>
 
 
 int SwapFifo::init() {

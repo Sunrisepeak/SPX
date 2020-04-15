@@ -304,7 +304,7 @@ int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
     //try to find a vma which include addr
     auto vma = findVma(mm, addr);
 
-    //pgfault_num++;
+    pageFaultNum++;
     //If the addr is in the range of a mm's vma?
     if (vma == nullptr || vma->data.vm_start > addr) {
         DEBUGPRINT("invalid address, not exist in mm");

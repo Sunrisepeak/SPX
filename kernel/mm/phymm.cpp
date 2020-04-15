@@ -155,7 +155,7 @@ void PhyMM::initGDTAndTSS() {
 }
 
 void PhyMM::initPmmManager() {
-    manager = &ff;
+    manager = &(kernel::algorithms::ffma);
 }
 
 void PhyMM::mapSegment(uptr32_t lad, uptr32_t pad, uint32_t size, uint32_t perm) {
@@ -312,19 +312,18 @@ List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
     bool intr_flag;
     
     while (true) {
-         local_intr_save(intr_flag);
-         {
-              pnode = manager->allocPages(n);
-         }
-         local_intr_restore(intr_flag);
 
-         if (pnode != nullptr || n > 1 || kernel::swap.initOk() == 0) break;
-         
-         //extern struct mm_struct *check_mm_struct;
-         //cprintf("page %x, call swap_out in alloc_pages %d\n",page, n);
-         //swap_out(check_mm_struct, n, 0);
+        local_intr_save(intr_flag);
+        {
+            pnode = manager->allocPages(n);
+        }
+        local_intr_restore(intr_flag);
+
+        if (pnode != nullptr || n > 1 || kernel::swap.initOk() == false) break;
+        
+        DEBUGPRINT("call swap_out in alloc_pages %d");
+        kernel::swap.swapOut(&(kernel::vmm.checkMM->data), n, 0);
     }
-    //cprintf("n %d,get page %x, No %d in alloc_pages\n",n,page,(page-pages));
     return pnode;
 }
 

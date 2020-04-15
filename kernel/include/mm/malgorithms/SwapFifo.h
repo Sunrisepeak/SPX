@@ -17,7 +17,7 @@ class SwapFifo : public SwapManager {
         int setUnswappable(VMM::MM *mm, uptr32_t addr);
         
         int swapOutVictim(VMM::MM *mm, Linker<MMU::Page>::DLNode **ptrPage, uint32_t inTick);
-        
+
 };
 
 #endif
