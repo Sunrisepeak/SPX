@@ -2,6 +2,7 @@
 #define _SWAP_FIFO_H
 
 #include <defs.h>
+#include <mmu.h>
 #include <SwapManager.h>
 
 class SwapFifo : public SwapManager {
@@ -12,9 +13,9 @@ class SwapFifo : public SwapManager {
 
         int tickEvent(VMM::MM *mm);
 
-        int mapSwappable(VMM::MM *mm, uptr32_t addr, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn);
+        int mapSwappable(VMM::MM *mm, MMU::LinearAD lad, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn);
 
-        int setUnswappable(VMM::MM *mm, uptr32_t addr);
+        int setUnswappable(VMM::MM *mm, MMU::LinearAD lad);
         
         int swapOutVictim(VMM::MM *mm, Linker<MMU::Page>::DLNode **ptrPage, uint32_t inTick);
 

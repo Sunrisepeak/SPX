@@ -36,13 +36,13 @@ class Swap {
         
         uint32_t swapTickEvent(VMM::MM *mm);
         
-        uint32_t swapMapSwappable(VMM::MM *mm, uptr32_t ad, MMU::Page *page, uint32_t swapIn);
+        uint32_t swapMapSwappable(VMM::MM *mm, MMU::LinearAD ad, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn);
         
-        uint32_t swapSetUnswappable(VMM::MM *mm, uptr32_t ad);
+        uint32_t swapSetUnswappable(VMM::MM *mm, MMU::LinearAD ad);
         
         uint32_t swapOut(VMM::MM *mm, uint32_t n, uint32_t inTick);
         
-        uint32_t swapIn(VMM::MM *mm, uptr32_t ad, Linker<MMU::Page>::DLNode **ptrResult);
+        uint32_t swapIn(VMM::MM *mm, MMU::LinearAD ad, Linker<MMU::Page>::DLNode **ptrResult);
 
         bool initOk();
 
@@ -52,6 +52,11 @@ class Swap {
 
         void checkContentSet();
 
+
+        /* work set = 4 page
+         * access queue : c a d b e b a b c d
+         * 
+         */ 
         int checkContentAccess();
 
     private:

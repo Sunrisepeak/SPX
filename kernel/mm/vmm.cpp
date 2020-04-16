@@ -277,7 +277,8 @@ void VMM::checkPageFault() {
     assert(sum == 0);
 
     kernel::pmm.removePage(pdt, MMU::LinearAD::LAD(Utils::roundDown(addr, PGSIZE)));
-    kernel::pmm.freePages(kernel::pmm.pdeToPgNode(pdt[0]));    //pdt[0] = 0;
+    kernel::pmm.freePages(kernel::pmm.pdeToPgNode(pdt[0]));    
+    pdt[0] = 0;
 
     mm->data.pdt = nullptr;
     mmDestroy(mm);
@@ -293,7 +294,7 @@ void VMM::checkPageFault() {
 // do_pgfault - interrupt handler to process the page fault execption
 int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
 
-    OStream out("\n\n errorCode = ", "blue");
+    OStream out("\n[PageFault Exception] errorCode= ", "blue");
     out.writeValue(errorCode);
     out.flush();
 
@@ -327,6 +328,7 @@ int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
                 DEBUGPRINT("do_pgfault failed: error code flag = write AND not present, but the addr's vma cannot write");
                 goto failed;
             }
+
             break;
 
         default: 
@@ -358,23 +360,23 @@ int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
     } else { 
         
         // if this pte is a swap entry, then load data from disk to a page with phy addr
-        // and call page_insert to map the phy addr with logical addr
-        /*
-        if(swap_init_ok) {
+        // and call mapPage to map the phy addr with logical addr
+        
+        if(kernel::swap.initOk()) {
             List<MMU::Page>::DLNode *pnode = nullptr;
-            if ((ret = swap_in(mm, addr, &page)) != 0) {
+            if ((ret = kernel::swap.swapIn(&(mm->data), MMU::LinearAD::LAD(addr), &pnode)) != 0) {
                 DEBUGPRINT("swap_in in do_pgfault failed\n");
                 goto failed;
             }    
-            page_insert(mm->pgdir, page, addr, perm);
-            swap_map_swappable(mm, addr, page, 1);
-            page->pra_vaddr = addr;
+            kernel::pmm.mapPage(mm->data.pdt, pnode, MMU::LinearAD::LAD(addr), perm);
+            kernel::swap.swapMapSwappable(&(mm->data), MMU::LinearAD::LAD(addr), pnode, 1);
+            pnode->data.praLAD = addr;
         }
         else {
             DEBUGPRINT("no swap_init_ok but ptep is failed\n");
             goto failed;
-        }*/
-        BREAKPOINT("swap not implement");
+        }
+        //BREAKPOINT("swap not implement");
    }
 
    ret = 0;

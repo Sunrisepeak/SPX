@@ -113,8 +113,9 @@ uint32_t IDE::readSecs(uint16_t ideno, uint32_t secno, uptr32_t dst, uint32_t ns
     outb(IDE_CMD_READ, iobase + ISA_COMMAND);
 
     int ret = 0;
-    for (; nsecs > 0; nsecs --, dst += SECTSIZE) {
+    for (; nsecs > 0; nsecs--, dst += SECTSIZE) {
         if ((ret = waitReady(iobase, true)) != 0) {
+            BREAKPOINT("Disk I/O: Read");
             break;
         }
         insl(iobase, (void *)dst, SECTSIZE / sizeof(uint32_t));
@@ -137,11 +138,12 @@ uint32_t IDE::writeSecs(uint16_t ideno, uint32_t secno, uptr32_t src, uint32_t n
     outb((secno >> 8) & 0xFF, iobase + ISA_CYL_LO);
     outb((secno >> 16) & 0xFF, iobase + ISA_CYL_HI);
     outb(0xE0 | ((ideno & 1) << 4) | ((secno >> 24) & 0xF), iobase + ISA_SDH);
-    outb(IDE_CMD_READ, iobase + ISA_COMMAND);
+    outb(IDE_CMD_WRITE, iobase + ISA_COMMAND);
 
     int ret = 0;
-    for (; nsecs > 0; nsecs --, src += SECTSIZE) {
+    for (; nsecs > 0; nsecs--, src += SECTSIZE) {
         if ((ret = waitReady(iobase, true)) != 0) {
+            BREAKPOINT("Disk I/O: Write");
             break;
         }
         outsl(iobase, (void *)src, SECTSIZE / sizeof(uint32_t));

@@ -30,7 +30,7 @@ void FFMA::initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) {
 }
 
 List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
-    if (n > nfp) {                                 // if n great than  number of free-page
+    if (n > nfp || freeArea.isEmpty()) {            // if n great than  number of free-page
         return nullptr;
     }
     auto it = freeArea.getNodeIterator();

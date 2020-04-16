@@ -25,6 +25,10 @@ namespace kernel {
         FFMA ffma;
     
     };
+
+    namespace stdio {
+        OStream out("blue");
+    };
 };
 
 void *operator new(uint32_t size) {

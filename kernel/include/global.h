@@ -44,6 +44,10 @@ namespace kernel {
         extern FFMA ffma;
     
     };
+
+    namespace stdio {
+        extern OStream out;
+    };
 };
 
 // reuse struct

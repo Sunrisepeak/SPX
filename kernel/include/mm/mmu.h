@@ -94,58 +94,6 @@ class MMU {
             uint16_t ts_iomb;         // i/o map base address
         }__attribute__((packed));
 
-        struct Page {
-            uint32_t ref;                           // page's reference counter
-            uint8_t status;                         // 0
-            uint32_t property;                      //
-            uptr32_t pra_vaddr;                     // 
-        }__attribute__((packed));                   // used for pra (page replace algorithm)
-        
-        // page table entry | Swap Entry  [reuse struct]        
-        struct PTEntry {
-            uint32_t p_p : 1;                       // present bits
-            uint32_t p_rw : 1;                      // R/W bits
-            uint32_t p_us : 1;                      // user
-            uint32_t p_pwt : 1;
-            uint32_t p_pcd : 1;
-            uint32_t p_a : 1;
-            uint32_t p_d : 1; 
-            uint32_t p_pat : 1;
-            uint32_t p_g : 1;
-            uint32_t p_avl : 3;
-            uint32_t p_ppn : 20;                    // physical page[frame] No
-
-            bool isEmpty() {
-                return (*(uint32_t *)(this)) == 0;
-            }
-
-            void setPermission(uint32_t perm) {
-                auto &temp = (*(uint32_t *)(this));
-                temp |= (perm & 0xFFF);
-            }
-
-            uint32_t getSecno() {
-                if (p_p) {
-                    BREAKPOINT("error operator, this isn't swap entry.");
-                }
-                return (*(uint32_t *)(this)) >> 8;
-            }
-
-            void setSecno(uint32_t secno) {
-                if (p_p) {
-                    BREAKPOINT("error operator, this isn't swap entry.");
-                }
-                auto &temp = (*(uint32_t *)(this));
-                temp ^= temp;
-                temp |= (secno << 8);
-            }
-
-            PTEntry & operator=(uint32_t value) {
-                (*(uint32_t *)(this)) = value;
-                return *this;
-            }
-
-        }__attribute__((packed));
 
         struct LinearAD {
             uint32_t OFF : 12;
@@ -172,6 +120,61 @@ class MMU {
 
         }__attribute__((packed));
 
+
+        struct Page {
+            uint32_t ref;                           // page's reference counter
+            uint8_t status;                         // 0
+            uint32_t property;                      //
+            LinearAD praLAD;                     // 
+        }__attribute__((packed));                   // used for pra (page replace algorithm)
+        
+        // page table entry | Swap Entry  [reuse struct]        
+        struct PTEntry {
+            uint32_t p_p : 1;                       // present bits
+            uint32_t p_rw : 1;                      // R/W bits
+            uint32_t p_us : 1;                      // user
+            uint32_t p_pwt : 1;
+            uint32_t p_pcd : 1;
+            uint32_t p_a : 1;
+            uint32_t p_d : 1; 
+            uint32_t p_pat : 1;
+            uint32_t p_g : 1;
+            uint32_t p_avl : 3;
+            uint32_t p_ppn : 20;                    // physical page[frame] No
+
+            bool isEmpty() {
+                return (*(uint32_t *)(this)) == 0;
+            }
+
+            void setPermission(uint32_t perm) {
+                auto &temp = (*(uint32_t *)(this));
+                temp |= (perm & 0xFFF);
+            }
+
+            // SwapEntry 
+
+            uint32_t getSwapEntry() {
+                if (p_p) {
+                    BREAKPOINT("error operator, this isn't swap entry.");
+                }
+                return (*(uint32_t *)(this)) >> 8;
+            }
+
+            void setSwapEntry(uint32_t secno) {
+                auto &temp = (*(uint32_t *)(this));
+                temp ^= temp;
+                temp |= (secno << 8);
+            }
+
+            PTEntry & operator=(uint32_t value) {
+                DEBUGPRINT("PTEntry: operator=");
+                (*(uint32_t *)(this)) = value;
+                return *this;
+            }
+
+        }__attribute__((packed));
+
+        
         MMU();
 
         static SegDesc setSegDesc(uint32_t type,uint32_t base, uint32_t lim, uint32_t dpl);

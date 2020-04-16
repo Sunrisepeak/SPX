@@ -13,13 +13,13 @@ int SwapFifo::tickEvent(VMM::MM *mm) {
     return 0;
 }
 
-int SwapFifo::mapSwappable(VMM::MM *mm, uptr32_t addr, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn) {
+int SwapFifo::mapSwappable(VMM::MM *mm, MMU::LinearAD lad, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn) {
     assert(pnode != nullptr);
     mm->smPriv.enqueue(pnode);
     return 0;
 }
 
-int SwapFifo::setUnswappable(VMM::MM *mm, uptr32_t addr) {
+int SwapFifo::setUnswappable(VMM::MM *mm, MMU::LinearAD lad) {
     return 0;
 }
 

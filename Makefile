@@ -145,16 +145,27 @@ $(spx_img) : $(mbr_block)
 	$(call exeShellScript,create_img.sh,$@,$(mbr_block),$(kernel))
 
 # <<<-------------------------------------------------------------------------------
+##################################### Part IV ######################################
+# -----------------------------------Debug------------------------>>>
 
-VBOX_VHD := ../Book/x86-Assembly-Real-To-Protected_Mode/testVM/testVM.vhd
-TERMINAL := gnome-terminal
-.PHONY : debug
+VBOX_VHD := vm/master.vhd
+SWAPIMG  := vm/swap.vhd
+
+QEMUOPTS = -hda $(VBOX_VHD) -drive file=$(SWAPIMG),media=disk,cache=writeback
+
+.PHONY: qemu debug
+
+qemu : $(VBOX_VHD) $(SWAPIMG)
+	dd if=$(spx_img) of=$(VBOX_VHD) conv=notrunc
+	qemu-system-i386 -no-reboot -parallel stdio $(QEMUOPTS) -serial null
+
 debug :
 	@echo Bochs Debug Mode
 	make clean
 	make
 	dd if=$(spx_img) of=$(VBOX_VHD) conv=notrunc
-	bochs -f $(VBOX_VHD)../bochsConfig.txt
+	bochs -f bochsConfig.cfg
+
 
 .PHONY : clean
 clean :

@@ -321,28 +321,38 @@ List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
 
         if (pnode != nullptr || n > 1 || kernel::swap.initOk() == false) break;
         
-        DEBUGPRINT("call swap_out in alloc_pages %d");
+        DEBUGPRINT("call swapOut in allocPages");
+        
         kernel::swap.swapOut(&(kernel::vmm.checkMM->data), n, 0);
     }
     return pnode;
 }
 
 List<MMU::Page>::DLNode * PhyMM::allocPageAndMap(PTEntry *pdt, LinearAD lad, uint32_t perm) {
+
     DEBUGPRINT("PhyMM::allocPageAndMap");
+
     auto pnode = allocPages();
     if (pnode != nullptr) {
         if (mapPage(pdt, pnode, lad, perm) != 0) {
             freePages(pnode);
             return nullptr;
         }
-        //if (swap_init_ok){
-            //swap_map_swappable(check_mm_struct, la, page, 0);
-            //page->pra_vaddr=la;
-            //assert(page_ref(page) == 1);
-            //cprintf("get No. %d  page: pra_vaddr %x, pra_link.prev %x, pra_link_next %x in pgdir_alloc_page\n", (page-pages), page->pra_vaddr,page->pra_page_link.prev, page->pra_page_link.next);
-        //    BREAKPOINT("swap not implements");
-        //}
 
+        if (kernel::swap.initOk()){
+            kernel::swap.swapMapSwappable(&(kernel::vmm.checkMM->data), lad, pnode, 0);
+            pnode->data.praLAD = lad;
+            assert(pnode->data.ref == 1);
+            
+            OStream out("","blue");
+            out.write("\n[Get Page]:\n   praLAD = ");
+            out.writeValue(lad.Integer());
+            out.write(", [praLink.prev, praLink.next] = ");
+            out.writeValue((uint32_t) (pnode->pre));
+            out.write(", ");
+            out.writeValue((uint32_t) (pnode->next));
+            out.flush();
+        }
     }
 
     return pnode;

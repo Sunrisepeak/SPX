@@ -23,10 +23,10 @@ class SwapManager {
           virtual int tickEvent(VMM::MM *mm) = 0;
           
           /* Called when map a swappable page into the mm_struct */
-          virtual int mapSwappable(VMM::MM *mm, uptr32_t addr, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn) = 0;
+          virtual int mapSwappable(VMM::MM *mm, MMU::LinearAD lad, Linker<MMU::Page>::DLNode *pnode, uint32_t swapIn) = 0;
           /* When a page is marked as shared, this routine is called to
           delete the addr entry from the swap manager */
-          virtual int setUnswappable(VMM::MM *mm, uptr32_t addr) = 0;
+          virtual int setUnswappable(VMM::MM *mm, MMU::LinearAD lad) = 0;
           
           /* Try to swap out a page, return then victim */
           virtual int swapOutVictim(VMM::MM *mm, Linker<MMU::Page>::DLNode **ptrPage, uint32_t inTick) = 0;
