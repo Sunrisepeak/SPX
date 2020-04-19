@@ -21,6 +21,8 @@
 #include <vmm.h>
 #include <swap.h>
 #include <SwapFifo.h>
+#include <pm.h>
+#include <schedule.h>
 #include <ostream.h>
 
 namespace kernel {
@@ -37,11 +39,15 @@ namespace kernel {
 
     extern Swap swap;
 
+    extern PM pm;
+
     namespace algorithms {
 
         extern SwapFifo swapFifo;
 
         extern FFMA ffma;
+
+        extern Schedule sched;
     
     };
 

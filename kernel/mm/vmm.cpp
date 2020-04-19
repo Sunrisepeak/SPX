@@ -287,7 +287,7 @@ void VMM::checkPageFault() {
 
     assert(nr_free_pages_store == kernel::pmm.numFreePages());
 
-    DEBUGPRINT("check_pgfault() succeeded!");
+    DEBUGPRINT("check Page fault succeeded!");
 }
 
 

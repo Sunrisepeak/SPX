@@ -36,7 +36,8 @@ void Trap::trapDispatch(TrapFrame *tf) {
         break;
     default:
         // in kernel, it must be a mistake
-        BREAKPOINT("interrupt error");
+        //BREAKPOINT("interrupt error");
+        kernel::algorithms::sched.schedule();
     }
 }
 

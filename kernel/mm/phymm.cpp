@@ -14,7 +14,7 @@ PhyMM::PhyMM() {
 
     bootCR3 = vToPhyAD((uptr32_t)bootPDT);
 
-    extern uint8_t bootstack[], bootstacktop[];
+    extern uptr32_t bootstack, bootstacktop;
     stack = bootstack;
     stackTop = bootstacktop;
     
@@ -70,6 +70,7 @@ void PhyMM::initPage() {
         out.write("\n");
     }
 
+
     if (maxpa > KERNEL_MEM_SIZE) {
         maxpa = KERNEL_MEM_SIZE;
     }
@@ -96,6 +97,8 @@ void PhyMM::initPage() {
     out.write("\n freeMem = ");
     out.writeValue((uint32_t)freeMem);
     out.flush();
+
+    //BREAKPOINT("test Memory");
 
     for (uint32_t i = 0; i < memMap->numARDS; i++) {
         // get AD of begin and end of current Mem-Block 
@@ -244,6 +247,11 @@ List<MMU::Page>::DLNode * PhyMM::phyAdToPgNode(uptr32_t pAd) {
     return &(pNodeArr[pIndex]);
 }
 
+List<MMU::Page>::DLNode * PhyMM::vAdToPgNode(uptr32_t vAd) {
+    uint32_t pIndex = vToPhyAD(vAd) >> PGSHIFT;       // get pages-No
+    return &(pNodeArr[pIndex]);
+}
+
 uptr32_t PhyMM::pnodeToPageLAD(List<Page>::DLNode *node) {
     uint32_t pageNo = node - pNodeArr;       // physical memory page NO
     return pToVirAD(pageNo << PGSHIFT);
@@ -300,6 +308,14 @@ MMU::PTEntry * PhyMM::getPDT() {
     return bootPDT;
 }
 
+uptr32_t PhyMM::getCR3() {
+    return bootCR3;
+}
+
+uptr32_t PhyMM::getStack() {
+    return stack;
+}
+
 void PhyMM::removePage(PTEntry *pdt, LinearAD lad) {
     auto pte = getPTE(pdt, lad, false);
     if (pte != nullptr) {
@@ -308,6 +324,9 @@ void PhyMM::removePage(PTEntry *pdt, LinearAD lad) {
 }
 
 List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
+    
+    DEBUGPRINT("PhyMM::allocPages");
+
     List<Page>::DLNode *pnode = nullptr;
     bool intr_flag;
     
@@ -405,4 +424,13 @@ void PhyMM::tlbInvalidData(PTEntry *pdt, LinearAD lad) {
     if (getCR3() == vToPhyAD((uptr32_t)pdt)) {
         invlpg((void *)(lad.Integer()));
     }
+}
+
+/* *
+ * load_esp0 - change the ESP0 in default task state segment,
+ * so that we can use different kernel stack when we trap frame
+ * user to kernel.
+ * */
+void PhyMM::loadEsp0(uptr32_t esp0) {
+    tss.ts_esp0 = esp0;
 }

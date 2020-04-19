@@ -6,6 +6,7 @@
  */
 
 #include <string.h>
+#include <utils.hpp>
 
 uint32_t String::cStrLen(ccstring cstr) {
     uint32_t len = 0;
@@ -18,8 +19,9 @@ uint32_t String::cStrLen(ccstring cstr) {
 
 
 String::String(ccstring cstr) {
-    str = (cstring)cstr;
+    str = (cstring)save;
     length = cStrLen(cstr);
+    Utils::memcpy(cstr, str, length);
 }
 
 
@@ -28,12 +30,10 @@ String::~String() {                                     //destructor
 }
 
 
-String & String::operator=(ccstring cstr) {             // copy assigment
+String & String::operator=(ccstring cstr) {             // copy assigment    
     length = cStrLen(cstr);
-    //delete [] str;
-    //str = new char[length];
-    for (uint32_t i = 0; i < length; i++) {
-        str[i] = cstr[i];
+    for (uint32_t i = 0; i < length && i < STR_BASE_SIZE; i++) {
+        save[i] = cstr[i];
     }
     return *this;
 }
@@ -50,7 +50,7 @@ bool String::operator==(const String &_str) {
     bool isEquals = false;
     if (_str.length == length) {
         for (uint32_t i = 0; i < length; i++) {
-            if (str[i] != (_str.str)[i]) {
+            if (save[i] != (_str.str)[i]) {
                 return false;
             }
         }

@@ -98,6 +98,9 @@ KINCUDE_DIR :=	kernel/include/ \
 				kernel/console/ \
 				kernel/fs/ \
 				kernel/interrupt/ \
+				kernel/pm/ \
+				kernel/pm/thread/ \
+				kernel/schedule/ \
 				kernel/trap/
 
 
@@ -109,6 +112,9 @@ KSRC_DIR	:=	kernel/init/ \
 				kernel/libs/ \
 				kernel/mm/ \
 				kernel/mm/malgorithms/ \
+				kernel/pm/ \
+				kernel/pm/thread/ \
+				kernel/schedule/ \
 				kernel/trap/ \
 				libs/ \
 				libs/container/ 

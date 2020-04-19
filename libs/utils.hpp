@@ -24,6 +24,15 @@ class Utils {
             }
         }
 
+        static void memcpy(const void *from, const void *to, uint32_t size) {
+            uint8_t *src = (uint8_t *)from;
+            uint8_t *dst = (uint8_t *)to;
+            for (uint32_t i = 0; i < size; i++) {
+                dst[i] = src[i];
+            }
+        }
+
+
         static bool memEmpty(void *ad, uint32_t size) {
             uint8_t *p = (uint8_t *)ad;
             for (uint32_t i = 0; i < size; i++) {

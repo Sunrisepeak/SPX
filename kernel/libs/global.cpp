@@ -18,11 +18,15 @@ namespace kernel {
 
     Swap swap;
 
+    PM pm;
+
     namespace algorithms {
 
         SwapFifo swapFifo;
 
         FFMA ffma;
+
+        Schedule sched;
     
     };
 

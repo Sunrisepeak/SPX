@@ -15,6 +15,10 @@
 #include <list.hpp>
 #include <flags.h>
 
+/* fork flags used in do_fork*/
+#define CLONE_VM            0x00000100  // set if VM shared between processes
+#define CLONE_THREAD        0x00000200  // thread group
+
 /*      physical Memory management      */
 
 class PhyMM : public MMU {
@@ -49,6 +53,8 @@ class PhyMM : public MMU {
 
         List<Page>::DLNode * phyAdToPgNode(uptr32_t pAd);
 
+        List<Page>::DLNode * vAdToPgNode(uptr32_t vAd);
+
         uptr32_t pnodeToPageLAD(List<Page>::DLNode *node);
 
         PTEntry * pdeToPTable(const PTEntry &pte);
@@ -62,6 +68,10 @@ class PhyMM : public MMU {
         void removePTE(PTEntry *pdt, const LinearAD &lad, PTEntry *pte);
 
         PTEntry * getPDT();
+
+        uptr32_t getCR3();
+
+        uptr32_t getStack();
 
         void removePage(PTEntry *pte, LinearAD la);                     // remove page which is la point
 
@@ -78,6 +88,8 @@ class PhyMM : public MMU {
         uint32_t numFreePages();
 
         void tlbInvalidData(PTEntry *pdt, LinearAD lad);
+
+        void loadEsp0(uptr32_t esp0);
     
     private:
 
@@ -87,8 +99,8 @@ class PhyMM : public MMU {
         static TSS tss;
 
         // stack data
-        uint8_t *stack;
-        uint8_t *stackTop;
+        uptr32_t stack;
+        uptr32_t stackTop;
 
         // virtual address of boot-time page directory
         PTEntry *bootPDT;

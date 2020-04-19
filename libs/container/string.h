@@ -10,18 +10,13 @@
 
 #include <defs.h>
 
+#define STR_BASE_SIZE 250
+
 class String {
-
-    private:
-        cstring str;
-        
-        uint8_t length;
-
-        uint32_t cStrLen(ccstring cstr);
 
     public:
 
-        String(ccstring cstr);
+        String(ccstring cstr = "");
 
         ~String();
         
@@ -35,6 +30,18 @@ class String {
 
         // index accessor
         char & operator[](const uint32_t index);
+
+    private:
+
+        cstring str;                    // str == save [AD]
+        char save[STR_BASE_SIZE];      // base-store space
+        
+        cstring indexTable[10];         // to use when length great than 250 and size is PageSize for per index
+        uint8_t index { 0 };
+
+        uint8_t length;
+
+        uint32_t cStrLen(ccstring cstr);
 };
 
 #endif
