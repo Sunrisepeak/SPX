@@ -385,3 +385,124 @@ failed:
 
     return ret;
 }
+
+int VMM::mmMap(
+    Linker<MM>::DLNode *mm,
+    uptr32_t addr,
+    uint32_t len,
+    uint32_t vm_flags,
+    Linker<VMA>::DLNode **vma_store
+) {
+    uptr32_t start = Utils::roundDown(addr, PGSIZE), end = Utils::roundUp(addr + len, PGSIZE);
+    if (!USER_ACCESS(start, end)) {
+        return -E_INVAL;
+    }
+
+    assert(mm != nullptr);
+
+    int ret = -E_INVAL;
+
+    Linker<VMA>::DLNode *vma;
+    if ((vma = findVma(mm, start)) != nullptr && end > vma->data.vm_start) {
+        goto out;
+    }
+    ret = -E_NO_MEM;
+
+    if ((vma = vmaCreate(start, end, vm_flags)) == nullptr) {
+        goto out;
+    }
+
+    insertVma(mm, vma);
+    
+    if (vma_store != nullptr) {
+        *vma_store = vma;
+    }
+
+    ret = 0;
+
+out:
+    return ret;
+}
+
+int VMM::dupMmMap(Linker<MM>::DLNode *from, Linker<MM>::DLNode *to) {
+
+    assert(to != nullptr && from != nullptr);
+    auto it = from->data.vmaList.getNodeIterator();
+    Linker<VMA>::DLNode *vma;
+    while ((vma = it.nextLNode()) != nullptr) {
+        Linker<VMA>::DLNode *newVma;
+        newVma = vmaCreate(vma->data.vm_start, vma->data.vm_end, vma->data.vm_flags);
+        if (newVma == nullptr) {
+            return -E_NO_MEM;
+        }
+
+        insertVma(to, newVma);
+
+        if (kernel::pmm.copyRange(from->data.pdt, to->data.pdt, vma->data.vm_start, vma->data.vm_end) != 0) {
+            return -E_NO_MEM;
+        }
+    }
+    return 0;
+}
+
+void VMM::exitMmMap(Linker<MM>::DLNode *mm) {
+    assert(mm != nullptr && mm->data.vmaList.length() == 0);
+    auto pdt = mm->data.pdt;
+    auto it = mm->data.vmaList.getNodeIterator();
+    Linker<VMA>::DLNode *vma;
+    while ((vma = it.nextLNode()) != nullptr) {
+        kernel::pmm.unmapRange(pdt, vma->data.vm_start, vma->data.vm_end);
+    }
+    while ((vma = it.nextLNode()) != nullptr) {
+        kernel::pmm.exitRange(pdt, vma->data.vm_start, vma->data.vm_end);
+    }
+}
+
+bool VMM::userMemCheck(Linker<MM>::DLNode *mm, uptr32_t start, uint32_t len, bool write) {
+    if (mm != nullptr) {
+        if (!USER_ACCESS(start, start + len)) {
+            return false;
+        }
+        Linker<VMA>::DLNode *vma;
+        uptr32_t addr = start, end = start + len;
+        while (addr < end) {
+            if ((vma = findVma(mm, addr)) == nullptr || addr < vma->data.vm_start) {
+                return false;
+            }
+            if (!(vma->data.vm_flags & ((write) ? VM_WRITE : VM_READ))) {
+                return false;
+            }
+            if (write && (vma->data.vm_flags & VM_STACK)) {
+                if (addr < vma->data.vm_start + PGSIZE) { //check stack start & size
+                    return false;
+                }
+            }
+            addr = vma->data.vm_end;
+        }
+        return true;
+    }
+    return KERN_ACCESS(start, start + len);
+}
+
+
+bool VMM::copyToKernel(
+    Linker<MM>::DLNode *mm,
+    const void *src, 
+    void *dst, 
+    uint32_t len, 
+    bool writable
+) {
+    if (!userMemCheck(mm, (uptr32_t)src, len, writable)) {
+        return false;
+    }
+    Utils::memcpy(src, dst, len);
+    return true;
+}
+
+bool VMM::copyToUser(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_t len) {
+    if (!userMemCheck(mm, (uptr32_t)dst, len, true)) {
+        return false;
+    }
+    Utils::memcpy(src, dst, len);
+    return true;
+}

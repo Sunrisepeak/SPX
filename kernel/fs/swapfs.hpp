@@ -26,7 +26,7 @@ class SwapFs {
             return IDE::readSecs(
                 SWAP_DEV_NO,
                 (entry.getSwapEntry()) * PAGE_NSECT,
-                kernel::pmm.pnodeToPageLAD(pnode),
+                kernel::pmm.pnodeToKernelLAD(pnode),
                 PAGE_NSECT
             );
         }
@@ -36,7 +36,7 @@ class SwapFs {
             return IDE::writeSecs(
                 SWAP_DEV_NO,
                 (entry.getSwapEntry()) * PAGE_NSECT,
-                kernel::pmm.pnodeToPageLAD(pnode),
+                kernel::pmm.pnodeToKernelLAD(pnode),
                 PAGE_NSECT
             );
         }

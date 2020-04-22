@@ -252,7 +252,7 @@ List<MMU::Page>::DLNode * PhyMM::vAdToPgNode(uptr32_t vAd) {
     return &(pNodeArr[pIndex]);
 }
 
-uptr32_t PhyMM::pnodeToPageLAD(List<Page>::DLNode *node) {
+uptr32_t PhyMM::pnodeToKernelLAD(List<Page>::DLNode *node) {
     uint32_t pageNo = node - pNodeArr;       // physical memory page NO
     return pToVirAD(pageNo << PGSHIFT);
 }
@@ -280,7 +280,7 @@ MMU::PTEntry * PhyMM::getPTE(PTEntry *pdt, const LinearAD &lad, bool create) {
         }
         pnode->data.ref = 1;
         // clear page content
-        Utils::memset((void *)(pnodeToPageLAD(pnode)), 0, PGSIZE);
+        Utils::memset((void *)(pnodeToKernelLAD(pnode)), 0, PGSIZE);
         // set permssion
         pde.p_ppn = pnode - pNodeArr;
         pde.p_us = 1;
@@ -358,19 +358,24 @@ List<MMU::Page>::DLNode * PhyMM::allocPageAndMap(PTEntry *pdt, LinearAD lad, uin
             return nullptr;
         }
 
-        if (kernel::swap.initOk()){
-            kernel::swap.swapMapSwappable(&(kernel::vmm.checkMM->data), lad, pnode, 0);
-            pnode->data.praLAD = lad;
-            assert(pnode->data.ref == 1);
-            
-            OStream out("","blue");
-            out.write("\n[Get Page]:\n   praLAD = ");
-            out.writeValue(lad.Integer());
-            out.write(", [praLink.prev, praLink.next] = ");
-            out.writeValue((uint32_t) (pnode->pre));
-            out.write(", ");
-            out.writeValue((uint32_t) (pnode->next));
-            out.flush();
+        if (kernel::swap.initOk()) {
+
+            if(kernel::vmm.checkMM != nullptr) {
+     
+                kernel::swap.swapMapSwappable(&(kernel::vmm.checkMM->data), lad, pnode, 0);
+                pnode->data.praLAD = lad;
+                assert(pnode->data.ref == 1);
+                
+                OStream out("","blue");
+                out.write("\n[Get Page]:\n   praLAD = ");
+                out.writeValue(lad.Integer());
+                out.write(", [praLink.prev, praLink.next] = ");
+                out.writeValue((uint32_t) (pnode->pre));
+                out.write(", ");
+                out.writeValue((uint32_t) (pnode->next));
+                out.flush();
+            } 
+
         }
     }
 
@@ -396,7 +401,7 @@ void * PhyMM::kmalloc(uint32_t size) {
     uint32_t num_pages = (size + PGSIZE - 1 ) / PGSIZE;
     base = allocPages(num_pages);
     assert(base != nullptr);
-    ptr = (void *)pnodeToPageLAD(base);
+    ptr = (void *)pnodeToKernelLAD(base);
     return ptr;
 }
 
@@ -433,4 +438,77 @@ void PhyMM::tlbInvalidData(PTEntry *pdt, LinearAD lad) {
  * */
 void PhyMM::loadEsp0(uptr32_t esp0) {
     tss.ts_esp0 = esp0;
+}
+
+
+void PhyMM::unmapRange(PTEntry *pdt, uptr32_t start, uptr32_t end) {
+    assert(start % PGSIZE == 0 && end % PGSIZE == 0);
+    assert(USER_ACCESS(start, end));
+
+    do {
+        auto pte = getPTE(pdt, start, false);
+        if (pte == nullptr) {
+            start = Utils::roundDown(start + PTSIZE, PTSIZE);
+            continue ;
+        }
+        if (!(pte->isEmpty())) {
+            removePTE(pdt, start, pte);
+        }
+        start += PGSIZE;
+    } while (start != 0 && start < end);
+}
+
+void PhyMM::exitRange(PTEntry *pdt, uptr32_t start, uptr32_t end) {
+    assert(start % PGSIZE == 0 && end % PGSIZE == 0);
+    assert(USER_ACCESS(start, end));
+
+    start = Utils::roundDown(start, PTSIZE);
+    do {
+        uint32_t pdi = LinearAD::LAD(start).PDI;
+        if (pdt[pdi].p_p) {
+            freePages(pdeToPgNode(pdt[pdi]));
+            pdt[pdi] = 0;
+        }
+        start += PTSIZE;
+    } while (start != 0 && start < end);
+}
+
+int PhyMM::copyRange(PTEntry *from, PTEntry *to, uptr32_t start, uptr32_t end, bool share) {
+    assert(start % PGSIZE == 0 && end % PGSIZE == 0);
+    assert(USER_ACCESS(start, end));
+    // copy content by page unit.
+    do {
+        //call getPTE to find process A's pte according to the addr start
+        auto pte = getPTE(from, start, false);
+        decltype(pte) npte;
+        
+        if (pte == nullptr) {
+            start = Utils::roundDown(start + PTSIZE, PTSIZE);
+            continue ;
+        }
+        //call getPTE to find process B's pte according to the addr start. If pte is NULL, just alloc a PT
+        if (pte->p_p) {
+            if ((npte = getPTE(to, start)) == nullptr) {
+                return -E_NO_MEM;
+            }
+            uint32_t perm = pte->p_us;
+            //get page node from pte
+            auto pnode = pteToPgNode(*pte);
+            // alloc a page for process B
+            auto npnode = allocPages();
+            assert(pnode != nullptr);
+            assert(npnode != nullptr);
+            int ret = 0;
+            
+            auto kva_src = pnodeToKernelLAD(pnode);
+            auto kva_dst = pnodeToKernelLAD(npnode);
+        
+            Utils::memcpy((void *)kva_src, (void *)kva_dst, PGSIZE);
+
+            ret = mapPage(to, npnode, start, perm);
+            assert(ret == 0);
+        }
+        start += PGSIZE;
+    } while (start != 0 && start < end);
+    return 0;
 }

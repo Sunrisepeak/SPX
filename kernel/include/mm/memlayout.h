@@ -41,4 +41,19 @@
 #define KSTACKPAGE          2                           // # of pages in kernel stack
 #define KSTACKSIZE          (KSTACKPAGE * PGSIZE)       // sizeof kernel stack
 
+#define USER_TOP             0xB0000000
+#define USTACKTOP           USER_TOP
+#define USTACKPAGE          256                         // # of pages in user stack
+#define USTACKSIZE          (USTACKPAGE * PGSIZE)       // sizeof user stack
+
+#define USER_BASE           0x00200000
+#define UTEXT               0x00800000                  // where user programs generally begin
+#define USTAB               USER_BASE                    // the location of the user STABS data structure
+
+#define USER_ACCESS(start, end)                     \
+(USER_BASE <= (start) && (start) < (end) && (end) <= USER_TOP)
+
+#define KERN_ACCESS(start, end)                     \
+(KERNEL_BASE <= (start) && (start) < (end) && (end) <= KERNEL_TOP)
+
 #endif /* !_MEMLAYOUT_H__ */

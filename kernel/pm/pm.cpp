@@ -155,7 +155,7 @@ bad_fork_cleanup_proc:
 int PM::allocKernelStack(PCB &pcb) {
     auto pnode = kernel::pmm.allocPages(KSTACKPAGE);
     if (pnode != nullptr) {
-        pcb.kStack = kernel::pmm.pnodeToPageLAD(pnode);
+        pcb.kStack = kernel::pmm.pnodeToKernelLAD(pnode);
         return 0;
     }
     return -E_NO_MEM;

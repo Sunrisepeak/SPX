@@ -5,12 +5,14 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <phymm.h>
+#include <linker.hpp>
 #include <list.hpp>
 #include <queue.hpp>
 
 #define VM_READ                 0x00000001
 #define VM_WRITE                0x00000002
 #define VM_EXEC                 0x00000004
+#define VM_STACK                0x0000000
 
 class VMM {
 
@@ -32,7 +34,9 @@ class VMM {
             List<VMA> vmaList;                      // MM manager of vam-list
             List<VMA>::DLNode *mmap_cache;          // current accessed vma, used for speed purpose
             MMU::PTEntry *pdt;                      // the PDT of these vma
-            Queue<MMU::Page> smPriv;                          // the private data for swap manager
+            Queue<MMU::Page> smPriv;                // the private data for swap manager
+            uint32_t mm_count;                      // the number ofprocess which shared the mm
+            bool mm_lock;                           // mutex for using dup_mmap fun to duplicat the mm
         } __attribute__((packed));
 
 
@@ -66,6 +70,25 @@ class VMM {
         void checkPageFault();
 
         int doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr);
+
+        // ****************** manager space in law for user process 
+
+        // map space to mm struct [vma]
+        int mmMap(Linker<MM>::DLNode *mm, uptr32_t addr, uint32_t len, uint32_t vm_flags, Linker<VMA>::DLNode **vma_store);
+
+        // cancel space of user in law
+        int dupMmMap(Linker<MM>::DLNode *to, Linker<MM>::DLNode *from);
+
+        // cancel PDT & PT map of physical space of mm corresponding  
+        void exitMmMap(Linker<MM>::DLNode *mm);
+
+        // ******************* kernel and user space copy
+
+        bool userMemCheck(Linker<MM>::DLNode *mm, uptr32_t start, uint32_t len, bool write = false);
+
+        bool copyToKernel(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_t len, bool writable = false);
+
+        bool copyToUser(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_t len);
 
     private:
 

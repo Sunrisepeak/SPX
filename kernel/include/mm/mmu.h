@@ -100,6 +100,12 @@ class MMU {
             uint32_t PTI : 10;
             uint32_t PDI : 10;
 
+            LinearAD() = default;
+
+            LinearAD(uptr32_t ad) {
+                (*(uptr32_t *)(this)) = ad;
+            }
+
             uptr32_t Integer() {
                 return *(uptr32_t *)(this);
             }
@@ -142,6 +148,7 @@ class MMU {
             uint32_t p_avl : 3;
             uint32_t p_ppn : 20;                    // physical page[frame] No
 
+            
             bool isEmpty() {
                 return (*(uint32_t *)(this)) == 0;
             }

@@ -55,7 +55,7 @@ class PhyMM : public MMU {
 
         List<Page>::DLNode * vAdToPgNode(uptr32_t vAd);
 
-        uptr32_t pnodeToPageLAD(List<Page>::DLNode *node);
+        uptr32_t pnodeToKernelLAD(List<Page>::DLNode *node);
 
         PTEntry * pdeToPTable(const PTEntry &pte);
 
@@ -90,6 +90,17 @@ class PhyMM : public MMU {
         void tlbInvalidData(PTEntry *pdt, LinearAD lad);
 
         void loadEsp0(uptr32_t esp0);
+
+        /*  recycle resource for process    */
+
+        // cancel table map for a range of AD
+        void unmapRange(PTEntry *pdt, uptr32_t start, uptr32_t end);
+
+        // cancel page dir table map
+        void exitRange(PTEntry *pdt, uptr32_t start, uptr32_t end);
+
+        // copy "old"P/T-memory to a new process/thread [create son Process/Thread]
+        int copyRange(PTEntry *to, PTEntry *from, uptr32_t start, uptr32_t end, bool share = false);
     
     private:
 
