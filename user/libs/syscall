@@ -1,0 +1,18 @@
+#ifndef __USER_LIBS_SYSCALL_H__
+#define __USER_LIBS_SYSCALL_H__
+
+#include <defs.h>
+
+namespace SystemCall {
+    extern int exit(int error_code);
+    extern int fork();
+    extern int wait(int pid, int *store);
+    extern int yield();
+    extern int kill(int pid);
+    
+    extern int getPid();
+    extern int putChar(int c);
+};
+
+#endif /* !__USER_LIBS_SYSCALL_H__ */
+

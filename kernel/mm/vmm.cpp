@@ -2,6 +2,7 @@
 #include <global.h>
 #include <assert.h>
 #include <error.h>
+#include <sync.h>
 #include <kdebug.h>
 #include <list.hpp>
 #include <queue.hpp>
@@ -59,8 +60,23 @@ List<VMM::VMA>::DLNode * VMM::findVma(List<MM>::DLNode *mm, uptr32_t addr) {
 
 List<VMM::VMA>::DLNode * VMM::vmaCreate(uptr32_t vmStart, uptr32_t vmEnd, uint32_t vmFlags) {
     DEBUGPRINT("VMM::vmaCreate");
+    if (kernel::DEBUG_FLAGS) {
+        kernel::stdio::out.writeValue((uint32_t)kernel::pm.current->data.value.tf);
+        kernel::stdio::out.flush();
+        if ((uint32_t)kernel::pm.current->data.value.tf < 0xC0000000) BREAKPOINT("4");
+        DEBUGPRINT("4");
+    }
+
     auto vma = (List<VMA>::DLNode *)(kernel::pmm.kmalloc(sizeof(List<VMA>::DLNode)));
     
+    if (kernel::DEBUG_FLAGS) {
+        kernel::stdio::out.writeValue((uint32_t)vma);
+        kernel::stdio::out.writeValue((uint32_t)kernel::pm.current->data.value.tf);
+        kernel::stdio::out.flush();
+        if ((uint32_t)kernel::pm.current->data.value.tf < 0xC0000000) BREAKPOINT("5");
+        DEBUGPRINT("5");
+    }
+
     if (vma != nullptr) {
         OStream out("", "blue");
         out.writeValue((uint32_t)vma);
@@ -119,6 +135,12 @@ List<VMM::MM>::DLNode * VMM::mmCreate() {
     DEBUGPRINT(" VMM::mmCreate()");
     auto mm = (List<MM>::DLNode *)(kernel::pmm.kmalloc(sizeof(List<MM>::DLNode)));
 
+    if (kernel::DEBUG_FLAGS) {
+        kernel::stdio::out.writeValue((uint32_t)kernel::pm.current->data.value.tf);
+        kernel::stdio::out.flush();
+        if ((uint32_t)kernel::pm.current->data.value.tf < 0xC0000000) BREAKPOINT("2.2");
+    }
+
     if (mm != nullptr) {
 
         mm->next = mm->pre = nullptr;
@@ -129,14 +151,18 @@ List<VMM::MM>::DLNode * VMM::mmCreate() {
         new (&(mm->data.smPriv)) Queue<VMA>();
 
         if (kernel::swap.initOk()) {
-            //swap_init_mm(mm);
+            kernel::swap.swapInitMm(&(mm->data));
         }
+
+        mm->data.mm_share = 0;
+        mm->data.mm_lock = false;
+        
     }
     return mm;
 }
 
 void VMM::mmDestroy(List<MM>::DLNode *mm) {
-
+    assert(mm->data.mm_share == 0);
     auto it = mm->data.vmaList.getNodeIterator();
     List<VMA>::DLNode *vma;
     while ((vma = it.nextLNode()) != nullptr) {
@@ -315,6 +341,7 @@ int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
         case 0: /* error code flag : (W/R=0, P=0): read, not present */
             if (!(vma->data.vm_flags & (VM_READ | VM_EXEC))) {
                 DEBUGPRINT("do_pgfault failed: error code flag = read AND not present, but the addr's vma cannot read or exec");
+                BREAKPOINT("Read not present");
                 goto failed;
             }
             break;
@@ -361,22 +388,24 @@ int VMM::doPageFault(List<MM>::DLNode *mm, uint32_t errorCode, uptr32_t addr) {
         
         // if this pte is a swap entry, then load data from disk to a page with phy addr
         // and call mapPage to map the phy addr with logical addr
-        
-        if(kernel::swap.initOk()) {
-            List<MMU::Page>::DLNode *pnode = nullptr;
-            if ((ret = kernel::swap.swapIn(&(mm->data), MMU::LinearAD::LAD(addr), &pnode)) != 0) {
-                DEBUGPRINT("swap_in in do_pgfault failed\n");
+        List<MMU::Page>::DLNode *pnode = nullptr;
+        if (pte->p_p) {
+            BREAKPOINT("not implement only-read");
+        } else {
+            if(kernel::swap.initOk()) {
+                if ((ret = kernel::swap.swapIn(&(mm->data), MMU::LinearAD::LAD(addr), &pnode)) != 0) {
+                    DEBUGPRINT("swap_in in do_pgfault failed\n");
+                    goto failed;
+                }    
+            } else {
+                DEBUGPRINT("no swap_init_ok but ptep is failed\n");
                 goto failed;
-            }    
-            kernel::pmm.mapPage(mm->data.pdt, pnode, MMU::LinearAD::LAD(addr), perm);
-            kernel::swap.swapMapSwappable(&(mm->data), MMU::LinearAD::LAD(addr), pnode, 1);
-            pnode->data.praLAD = addr;
+            }
         }
-        else {
-            DEBUGPRINT("no swap_init_ok but ptep is failed\n");
-            goto failed;
-        }
-        //BREAKPOINT("swap not implement");
+    
+        kernel::pmm.mapPage(mm->data.pdt, pnode, MMU::LinearAD::LAD(addr), perm);
+        kernel::swap.swapMapSwappable(&(mm->data), MMU::LinearAD::LAD(addr), pnode, 1);
+        pnode->data.praLAD = addr;
    }
 
    ret = 0;
@@ -386,6 +415,11 @@ failed:
     return ret;
 }
 
+/*
+ *  setting user space in law [mm Map]
+ * 
+ **/
+
 int VMM::mmMap(
     Linker<MM>::DLNode *mm,
     uptr32_t addr,
@@ -393,6 +427,9 @@ int VMM::mmMap(
     uint32_t vm_flags,
     Linker<VMA>::DLNode **vma_store
 ) {
+
+    DEBUGPRINT("VMM::mmMap");
+
     uptr32_t start = Utils::roundDown(addr, PGSIZE), end = Utils::roundUp(addr + len, PGSIZE);
     if (!USER_ACCESS(start, end)) {
         return -E_INVAL;
@@ -406,17 +443,23 @@ int VMM::mmMap(
     if ((vma = findVma(mm, start)) != nullptr && end > vma->data.vm_start) {
         goto out;
     }
+    
     ret = -E_NO_MEM;
-
     if ((vma = vmaCreate(start, end, vm_flags)) == nullptr) {
         goto out;
     }
+
+    kernel::stdio::out.writeValue((uint32_t)kernel::pm.current->data.value.tf);
+    kernel::stdio::out.flush();
+    if ((uint32_t)kernel::pm.current->data.value.tf < 0xC0000000) BREAKPOINT("3");
 
     insertVma(mm, vma);
     
     if (vma_store != nullptr) {
         *vma_store = vma;
     }
+
+       
 
     ret = 0;
 
@@ -505,4 +548,12 @@ bool VMM::copyToUser(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_
     }
     Utils::memcpy(src, dst, len);
     return true;
+}
+
+void VMM::lockMm(MM &mm) {
+    lock(mm.mm_lock);
+}
+
+void VMM::unlockMm(MM &mm) {
+    unlock(mm.mm_lock);
 }

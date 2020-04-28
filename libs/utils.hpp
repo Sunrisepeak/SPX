@@ -32,7 +32,6 @@ class Utils {
             }
         }
 
-
         static bool memEmpty(void *ad, uint32_t size) {
             uint8_t *p = (uint8_t *)ad;
             for (uint32_t i = 0; i < size; i++) {
@@ -43,7 +42,7 @@ class Utils {
             return true;
         }
 
-        // swap content of memory
+        // swap content of memory[obj Or variable]
         template <typename T>
         static void swap(T &a, T &b) {
             if (sizeof(a) != sizeof(b)) {
@@ -60,7 +59,6 @@ class Utils {
                 p2[i] = temp;
             }
         }
-
 };
 
 #endif

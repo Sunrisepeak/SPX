@@ -12,7 +12,7 @@ PhyMM::PhyMM() {
     extern PTEntry __boot_pgdir;
     bootPDT = &__boot_pgdir;
 
-    bootCR3 = vToPhyAD((uptr32_t)bootPDT);
+    bootCR3 = kAdToPhyAD((uptr32_t)bootPDT);
 
     extern uptr32_t bootstack, bootstacktop;
     stack = bootstack;
@@ -27,7 +27,7 @@ void PhyMM::init() {
     initPage();
 
     // map to page-dir-table by Virtual Page Table
-    bootPDT[LinearAD::LAD(VPT).PDI].p_ppn = (vToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
+    bootPDT[LinearAD::LAD(VPT).PDI].p_ppn = (kAdToPhyAD((uptr32_t)bootPDT) >> PGSHIFT) && 0xFFFFF;
     bootPDT[LinearAD::LAD(VPT).PDI].p_p = 1;
     bootPDT[LinearAD::LAD(VPT).PDI].p_rw = 1;
 
@@ -92,7 +92,7 @@ void PhyMM::initPage() {
     }
 
     // get top-address of pNodeArr[] element in the end, it is free area when great than the AD
-    uptr32_t freeMem = vToPhyAD((uptr32_t)(pNodeArr + numPage));
+    uptr32_t freeMem = kAdToPhyAD((uptr32_t)(pNodeArr + numPage));
     
     out.write("\n freeMem = ");
     out.writeValue((uint32_t)freeMem);
@@ -228,7 +228,7 @@ int PhyMM::mapPage(PTEntry *pdt, List<Page>::DLNode *pnode, LinearAD lad, uint32
 }
 
 
-uptr32_t PhyMM::vToPhyAD(uptr32_t kvAd) {
+uptr32_t PhyMM::kAdToPhyAD(uptr32_t kvAd) {
     if (KERNEL_BASE <= kvAd && kvAd <= KERNEL_BASE + KERNEL_MEM_SIZE) {
         return kvAd - KERNEL_BASE;
     }
@@ -247,8 +247,8 @@ List<MMU::Page>::DLNode * PhyMM::phyAdToPgNode(uptr32_t pAd) {
     return &(pNodeArr[pIndex]);
 }
 
-List<MMU::Page>::DLNode * PhyMM::vAdToPgNode(uptr32_t vAd) {
-    uint32_t pIndex = vToPhyAD(vAd) >> PGSHIFT;       // get pages-No
+List<MMU::Page>::DLNode * PhyMM::kvAdToPgNode(uptr32_t vAd) {
+    uint32_t pIndex = kAdToPhyAD(vAd) >> PGSHIFT;       // get pages-No
     return &(pNodeArr[pIndex]);
 }
 
@@ -271,7 +271,7 @@ List<MMU::Page>::DLNode * PhyMM::pdeToPgNode(const PTEntry &pde) {
 }
 
 MMU::PTEntry * PhyMM::getPTE(PTEntry *pdt, const LinearAD &lad, bool create) {
-    PTEntry &pde = bootPDT[lad.PDI];
+    PTEntry &pde = pdt[lad.PDI];                         // spend one day to debug. AI
     if (!(pde.p_p) && create) {                          // check present bit and is create?
         /*      wait 2020.4.6      */
         List<Page>::DLNode *pnode;
@@ -325,8 +325,6 @@ void PhyMM::removePage(PTEntry *pdt, LinearAD lad) {
 
 List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
     
-    DEBUGPRINT("PhyMM::allocPages");
-
     List<Page>::DLNode *pnode = nullptr;
     bool intr_flag;
     
@@ -339,8 +337,6 @@ List<MMU::Page>::DLNode * PhyMM::allocPages(uint32_t n) {
         local_intr_restore(intr_flag);
 
         if (pnode != nullptr || n > 1 || kernel::swap.initOk() == false) break;
-        
-        DEBUGPRINT("call swapOut in allocPages");
         
         kernel::swap.swapOut(&(kernel::vmm.checkMM->data), n, 0);
     }
@@ -394,12 +390,18 @@ void PhyMM::freePages(List<Page>::DLNode *base, uint32_t n) {
 
 
 void * PhyMM::kmalloc(uint32_t size) {
-    DEBUGPRINT("PhyMM::kmalloc");
+    DEBUGPRINT("PhyMM::kmalloc ");
+   
     void * ptr = nullptr;
     List<Page>::DLNode *base = nullptr;
     assert(size > 0 && size < 1024*0124);
     uint32_t num_pages = (size + PGSIZE - 1 ) / PGSIZE;
+
+    kernel::stdio::out.writeValue(num_pages);
+    kernel::stdio::out.flush();
+
     base = allocPages(num_pages);
+
     assert(base != nullptr);
     ptr = (void *)pnodeToKernelLAD(base);
     return ptr;
@@ -410,7 +412,7 @@ void PhyMM::kfree(void *ptr, uint32_t size) {
     assert(ptr != nullptr);
     List<Page>::DLNode *base = nullptr;
     uint32_t num_pages = (size + PGSIZE - 1) / PGSIZE;
-    base = phyAdToPgNode(vToPhyAD((uptr32_t)ptr));
+    base = phyAdToPgNode(kAdToPhyAD((uptr32_t)ptr));
     freePages(base, num_pages);
 }
 
@@ -426,7 +428,7 @@ uint32_t PhyMM::numFreePages() {
 }
 
 void PhyMM::tlbInvalidData(PTEntry *pdt, LinearAD lad) {
-    if (getCR3() == vToPhyAD((uptr32_t)pdt)) {
+    if (getCR3() == kAdToPhyAD((uptr32_t)pdt)) {
         invlpg((void *)(lad.Integer()));
     }
 }

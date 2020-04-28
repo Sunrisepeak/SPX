@@ -35,7 +35,7 @@ class VMM {
             List<VMA>::DLNode *mmap_cache;          // current accessed vma, used for speed purpose
             MMU::PTEntry *pdt;                      // the PDT of these vma
             Queue<MMU::Page> smPriv;                // the private data for swap manager
-            uint32_t mm_count;                      // the number ofprocess which shared the mm
+            uint32_t mm_share;                      // the number of process which shared the mm
             bool mm_lock;                           // mutex for using dup_mmap fun to duplicat the mm
         } __attribute__((packed));
 
@@ -76,7 +76,7 @@ class VMM {
         // map space to mm struct [vma]
         int mmMap(Linker<MM>::DLNode *mm, uptr32_t addr, uint32_t len, uint32_t vm_flags, Linker<VMA>::DLNode **vma_store);
 
-        // cancel space of user in law
+        // copy mm and map
         int dupMmMap(Linker<MM>::DLNode *to, Linker<MM>::DLNode *from);
 
         // cancel PDT & PT map of physical space of mm corresponding  
@@ -89,6 +89,10 @@ class VMM {
         bool copyToKernel(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_t len, bool writable = false);
 
         bool copyToUser(Linker<MM>::DLNode *mm, const void *src, void *dst, uint32_t len);
+
+        void lockMm(MM &mm);
+
+        void unlockMm(MM &mm);
 
     private:
 

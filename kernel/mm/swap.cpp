@@ -211,6 +211,7 @@ void Swap::checkSwap() {
     } 
 
     kernel::vmm.mmDestroy(mm);
+    kernel::vmm.checkMM = nullptr;
 
     // restore  info of free page
     Utils::swap(save, kernel::algorithms::ffma.getFreeArea());

@@ -2,13 +2,14 @@
  * @Author: SPeak Shen 
  * @Date: 2020-04-10 17:04:10 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-10 19:27:08
+ * @Last Modified time: 2020-04-28 19:01:40
  */
 
 #ifndef _KDEBUG_H
 #define _KDEBUG_H
 
 #include <defs.h>
+#include <string.h>
 #include <ostream.h>
 
 #define BREAKPOINT(x) {                                \

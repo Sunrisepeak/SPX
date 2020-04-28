@@ -90,6 +90,10 @@ class Trap {
         static void trapDispatch(TrapFrame *tf);
 
         static int pageFaultHandler(TrapFrame *tf);
+
+        static bool trapInKernel(TrapFrame *tf);
+
+        static void printTrapFrame(TrapFrame *tf);
 };
 
 #endif

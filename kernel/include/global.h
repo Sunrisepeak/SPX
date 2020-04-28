@@ -2,7 +2,7 @@
  * @Author: SPeak Shen 
  * @Date: 2020-04-10 09:36:28 
  * @Last Modified by: SPeak Shen
- * @Last Modified time: 2020-04-14 11:08:06
+ * @Last Modified time: 2020-04-28 18:23:30
  */
 
 #ifndef _GLOBAL_H
@@ -23,6 +23,7 @@
 #include <SwapFifo.h>
 #include <pm.h>
 #include <schedule.h>
+#include <syscall.h>
 #include <ostream.h>
 
 namespace kernel {
@@ -40,6 +41,10 @@ namespace kernel {
     extern Swap swap;
 
     extern PM pm;
+
+    extern SysCall scall;
+
+    extern bool DEBUG_FLAGS;
 
     namespace algorithms {
 

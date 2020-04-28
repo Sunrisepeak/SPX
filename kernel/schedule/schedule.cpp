@@ -4,11 +4,18 @@
 #include <global.h>
 
 void Schedule::wakeupProc(PM::PCB &pcb) {
-    assert(
-        pcb.state != PM::ProcState::PROC_ZOMBIE &&
-        pcb.state != PM::ProcState::PROC_RUNNABLE
-    );
-    pcb.state = PM::ProcState::PROC_RUNNABLE;
+    assert(pcb.state != PM::ProcState::PROC_ZOMBIE);
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        if (pcb.state != PM::ProcState::PROC_RUNNABLE) {
+            pcb.state = PM::ProcState::PROC_RUNNABLE;
+            pcb.wait_state = 0;
+        } else {
+            DEBUGPRINT("wakeup runnable process.");
+        }
+    }
+    local_intr_restore(intr_flag);
 }
 
 void Schedule::schedule() {
@@ -21,6 +28,7 @@ void Schedule::schedule() {
     local_intr_save(intr_flag);
     {
         while ((proc = it.nextHashNode()) != nullptr) {
+            DEBUGPRINT("schedule thread...");
             if (proc->data.value.state == PM::ProcState::PROC_RUNNABLE) {
                 break;
             }

@@ -47,13 +47,13 @@ class PhyMM : public MMU {
 
         int mapPage(PTEntry *pdt, List<Page>::DLNode *pnode, LinearAD lad, uint32_t perm);
 
-        uptr32_t vToPhyAD(uptr32_t vAd);
+        uptr32_t kAdToPhyAD(uptr32_t vAd);
 
         uptr32_t pToVirAD(uptr32_t pAd);
 
         List<Page>::DLNode * phyAdToPgNode(uptr32_t pAd);
 
-        List<Page>::DLNode * vAdToPgNode(uptr32_t vAd);
+        List<Page>::DLNode * kvAdToPgNode(uptr32_t vAd);
 
         uptr32_t pnodeToKernelLAD(List<Page>::DLNode *node);
 

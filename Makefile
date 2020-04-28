@@ -36,14 +36,13 @@ SRC_FILE_TYPE := .S .c .cpp
 # branch
 mbr_block := bin/mbr_block
 kernel := bin/kernel
+user := bin/user
 spx_img := bin/spx.img
 
 # bin dir
 $(call createTargetDir,$(BIN_DIR))
 
-main : $(mbr_block) $(kernel) $(spx_img)
-	@echo + spx.img
-	$(call exeShellScript,create_img.sh,$(spx_img),$(mbr_block),$(kernel))
+main : $(mbr_block) $(spx_img)
 	@echo success, create spx.img
 
 ##################################### Part I ######################################
@@ -84,6 +83,52 @@ $(bootblock) : $(LOCAL_OBJ_ALL)
 	
 # <<<-------------------------------------------------------------------------------
 ##################################### Part II ######################################
+# -----------------------------------User------------------------>>>
+
+UINCLUDE	:= user/include/ \
+			   user/libs/
+
+UDIR		:= user/
+
+ULIBDIR		:= user/libs
+
+USER_BINS	:=
+
+# all file of src
+#---> user
+USRC += $(call getFileList,.user.cpp,$(UDIR))
+
+#---> user lib
+ULIB_SRC := $(call getFileList,.S,$(ULIBDIR))
+ULIB_SRC += $(call getFileList,.cpp,$(ULIBDIR))
+
+# src to obj of local 
+UOBJS := $(call srcToObjFile,$(USRC))
+ULIB_OBJS := $(call srcToObjFile,$(ULIB_SRC))
+
+# create dir of obj-file
+$(call createTargetDir,$(UOBJS) $(ULIB_OBJS))
+
+# local include
+LOCAL_INC := $(addprefix -I,$(UINCLUDE)) $(INCLUDE)
+
+# batch compiler to obj by gcc
+$(call batchCompiler,$(CXX),$(USRC) $(ULIB_SRC),$(LOCAL_INC),$(CXX_FLAGS))
+
+define user_ld
+__user_bin__ := $$(addprefix obj/,$$(notdir $$(basename $(1))))
+USER_BINS += $$(__user_bin__)
+$$(__user_bin__): tools/user.ld
+	@echo + $$@
+	ld $(LD_FLAGS) -T tools/user.ld -o $$@ $$(ULIB_OBJS) $(1)
+	objdump -S $$@ > obj/$$(notdir $$(__user_bin__)).asm
+	objdump -t $$@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$$$/d' > obj/$$(notdir $$(__user_bin__)).sym
+endef
+
+$(foreach p,$(UOBJS),$(eval $(call user_ld,$(p))))
+
+# <<<-------------------------------------------------------------------------------
+##################################### Part III ######################################
 # --------------------------------Create Kernel Start---------------------------->>>
 
 KINCUDE_DIR :=	kernel/include/ \
@@ -101,6 +146,7 @@ KINCUDE_DIR :=	kernel/include/ \
 				kernel/pm/ \
 				kernel/pm/thread/ \
 				kernel/schedule/ \
+				kernel/syscall/ \
 				kernel/trap/
 
 
@@ -111,13 +157,11 @@ KSRC_DIR	:=	kernel/init/ \
 				kernel/driver/ \
 				kernel/libs/ \
 				kernel/mm/ \
-				kernel/mm/malgorithms/ \
 				kernel/pm/ \
-				kernel/pm/thread/ \
 				kernel/schedule/ \
+				kernel/syscall/ \
 				kernel/trap/ \
 				libs/ \
-				libs/container/ 
 
 # all file of src
 LOCAL_SRC_ALL := $(call getFileList,.S,$(KSRC_DIR))
@@ -135,24 +179,29 @@ LOCAL_INC := $(addprefix -I,$(KINCUDE_DIR)) $(INCLUDE)
 # batch compiler to obj by g++
 $(call batchCompiler,$(CXX),$(LOCAL_SRC_ALL),$(LOCAL_INC),$(CXX_FLAGS))
 		
-$(kernel) : $(LOCAL_OBJ_ALL)
+$(kernel) : $(LOCAL_OBJ_ALL) $(USER_BINS)
 	@echo + $@
-	$(LD) -o $@ $(LD_FLAGS) -T tools/kernel.ld $^
+	$(LD) -o $@ $(LD_FLAGS) -T tools/kernel.ld $(LOCAL_OBJ_ALL) -b binary $(USER_BINS)
 	@echo +2 obj/kernel.asm obj/kernel.sym
 	objdump -S $@ > obj/kernel.asm
 	objdump -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > obj/kernel.sym
 	
-# <<<-------------------------------------------------------------------------------
-##################################### Part III ######################################
-# -----------------------------------Create spx.img Start------------------------>>>
 
-$(spx_img) : $(mbr_block)
-	@echo + $(BIN_DIR)spx.img
-	$(call exeShellScript,create_img.sh,$@,$(mbr_block),$(kernel))
+
+
 
 # <<<-------------------------------------------------------------------------------
 ##################################### Part IV ######################################
-# -----------------------------------Debug------------------------>>>
+# -----------------------------------Create spx.img Start------------------------>>>
+
+$(spx_img) : $(mbr_block) $(kernel)
+	@echo + $(BIN_DIR)spx.img
+	$(call exeShellScript,create_img.sh,$@,$(mbr_block),$(kernel))
+
+
+# <<<------------------------------------------------------------------------------
+##################################### Part V ######################################
+# ------------------------------------Debug------------------------------------->>>
 
 VBOX_VHD := vm/master.vhd
 SWAPIMG  := vm/swap.vhd

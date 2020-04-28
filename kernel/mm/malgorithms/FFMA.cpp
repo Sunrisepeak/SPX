@@ -1,4 +1,5 @@
 #include <FFMA.h>
+#include <global.h>
 #include <mmu.h>
 #include <ostream.h>
 #include <kdebug.h>
@@ -30,17 +31,21 @@ void FFMA::initMemMap(List<MMU::Page>::DLNode *pArr, uint32_t num) {
 }
 
 List<MMU::Page>::DLNode * FFMA::allocPages(uint32_t n) {
+    
     if (n > nfp || freeArea.isEmpty()) {            // if n great than  number of free-page
         return nullptr;
     }
+    
     auto it = freeArea.getNodeIterator();
     List<MMU::Page>::DLNode *pnode;
+
     // find fit Area
     while((pnode = it.nextLNode()) != nullptr) {
         if (pnode->data.property >= n) {            // current continuous area[page num] is Ok
             break;
         }
     }
+
     if (pnode != nullptr) {
         if (pnode->data.property > n) {             // need resolve continuous area ?
             List<MMU::Page>::DLNode *newNode = pnode + n;

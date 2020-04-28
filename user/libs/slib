@@ -1,0 +1,18 @@
+#ifndef __USER_LIBS_SLIB_H__
+#define __USER_LIBS_SLIB_H__
+
+#include <defs.h>
+
+namespace slib {
+    extern void exit(int error_code);
+    extern int fork();
+    extern int wait();
+    extern int waitPid(int pid, int *store);
+    extern void yield();
+    extern int kill(int pid);
+    extern int getPid();
+    extern void putChar(int c);
+};
+
+#endif /* !__USER_LIBS_SLIB_H__ */
+

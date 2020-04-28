@@ -37,5 +37,13 @@ typedef struct {
     uint32_t p_align;
 } Elf_Phdr;
 
+/* values for Proghdr::p_type */
+#define ELF_PT_LOAD                     1
+
+/* flag bits for Proghdr::p_flags */
+#define ELF_PF_X                        1
+#define ELF_PF_W                        2
+#define ELF_PF_R                        4
+
 #endif
 

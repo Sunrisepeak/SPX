@@ -34,3 +34,11 @@ toTargetFile = $(addprefix obj/,$(1)$(2).o)
 # get filelist of multi-dir
 # 
 getFileList = $(foreach d,$(2),$(shell find $(d) -name *$(1)))
+
+
+cgtype = $(patsubst %.$(2),%.$(3),$(1))
+objfile = $(call toobj,$(1))
+outfile = $(call cgtype,$(call toobj,$(1)),o,out)
+filename = $(basename $(notdir $(1)))
+
+read_packet = $(foreach p,$(call packetname,$(1)),$($(p)))

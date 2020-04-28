@@ -20,6 +20,10 @@ namespace kernel {
 
     PM pm;
 
+    SysCall scall;
+
+    bool DEBUG_FLAGS { false };
+
     namespace algorithms {
 
         SwapFifo swapFifo;
@@ -31,7 +35,7 @@ namespace kernel {
     };
 
     namespace stdio {
-        OStream out("blue");
+        OStream out(" ","blue");
     };
 };
 

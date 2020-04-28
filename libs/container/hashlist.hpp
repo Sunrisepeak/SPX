@@ -24,7 +24,7 @@ class HashList {
 
         using HashNode = typename Linker<KeyValue>::DLNode;
 
-        // can't insert when iterator
+        // can't insert when iterate
         class HashListIterator {
             public:
                 void setCurrentNode(void *arr, uint32_t num) {
@@ -94,6 +94,8 @@ class HashList {
 
         void add(uint32_t key, HashNode *node);
 
+        void remove(uint32_t key, HashNode *node);
+
         HashNode * find(uint32_t key);
 
         HashListIterator & getHashListIterator();
@@ -146,6 +148,14 @@ void HashList<Object>::add(uint32_t key, HashNode *node) {
     hashList[index].addLNode(*node);
     
     num++;
+}
+
+template <typename Object>
+void HashList<Object>::remove(uint32_t key, HashNode *value) {
+    uint32_t index = hashFunc(key);
+    if (!(hashList[index].isEmpty())) {
+        hashList[index].deleteLNode(value);
+    }
 }
 
 template <typename Object>
